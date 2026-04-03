@@ -2364,7 +2364,19 @@ function t2SaveKey() {
 
 function t2WelcomeMessage() {
   if (T2.history.length > 0) return;
-  t2AddMessage('ai', `Hello${currentUser ? ', ' + currentUser.charAt(0).toUpperCase() + currentUser.slice(1) : ''}! I'm **T2**, your AI coordinator for robot_oda.\n\nI have full context of the Implementation Bible and your live project data. I can help you:\n\n• Track who is doing what and what's blocked\n• Manage B→A and C→A handoffs on the critical path\n• Detect bottlenecks and interpret progress\n• Surface engineering decisions, errors, and lessons\n• Support Sadnan with workload balance and priorities\n\nWhat do you need right now?`);
+  const displayName = currentUser
+    ? currentUser.charAt(0).toUpperCase() + currentUser.slice(1)
+    : 'teammate';
+  const roleLine = currentUser === 'sadnan'
+    ? '• Support you with workload balance and priorities as team lead'
+    : '• Keep your work aligned with Sadnan’s integration priorities';
+const displayName = currentUser
+    ? currentUser.charAt(0).toUpperCase() + currentUser.slice(1)
+    : 'teammate';
+  const roleLine = currentUser === 'sadnan'
+    ? '• Support you with workload balance and priorities as team lead'
+    : '• Keep your work aligned with Sadnan’s integration priorities';
+  t2AddMessage('ai', `Hello, ${displayName}! I'm **T2**, your AI coordinator for robot_oda.\n\nI have full context of the Implementation Bible and your live project data. I can help you:\n\n• Track who is doing what and what's blocked\n• Manage B→A and C→A handoffs on the critical path\n• Detect bottlenecks and interpret progress\n• Surface engineering decisions, errors, and lessons\n${roleLine}\n\nWhat do you need right now?`);
 }
 
 // ── Toggle panel ─────────────────────────────────────────────────
@@ -2628,6 +2640,10 @@ function t2AddMessage(role, text) {
 
 function t2FormatText(text) {
   return text
+    const normalized = String(text || '')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t');
+  return normalized
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code style="background:#141c30;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:11px">$1</code>')
