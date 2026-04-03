@@ -1,0 +1,2658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Supersonic — robot_oda Dashboard</title>
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg2: #0f1525;
+  --bg3: #141c30;
+  --card: #1a2240;
+  --card2: #1e2a4a;
+  --border: #2a3a5c;
+  --border2: #334466;
+  --purple: #7c6af7;
+  --purple2: #9d8fff;
+  --cyan: #22d3ee;
+  --cyan2: #67e8f9;
+  --green: #10b981;
+  --green2: #34d399;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --red2: #f87171;
+  --pink: #ec4899;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --sadnan: #7c6af7;
+  --tazin: #22d3ee;
+  --akib: #10b981;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── ANIMATIONS ── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px rgba(124,106,247,.3)}50%{box-shadow:0 0 20px rgba(124,106,247,.7)}}
+@keyframes scanline{0%{top:-10%}100%{top:110%}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes dash{to{stroke-dashoffset:0}}
+@keyframes orbitA{from{transform:rotate(0deg) translateX(80px) rotate(0deg)}to{transform:rotate(360deg) translateX(80px) rotate(-360deg)}}
+@keyframes orbitB{from{transform:rotate(120deg) translateX(80px) rotate(-120deg)}to{transform:rotate(480deg) translateX(80px) rotate(-480deg)}}
+@keyframes orbitC{from{transform:rotate(240deg) translateX(80px) rotate(-240deg)}to{transform:rotate(600deg) translateX(80px) rotate(-600deg)}}
+
+/* ── WELCOME SCREEN ── */
+#welcome{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000}
+.welcome-canvas{position:absolute;inset:0;overflow:hidden}
+.grid-line{position:absolute;background:rgba(124,106,247,.06)}
+.grid-line.h{width:100%;height:1px}
+.grid-line.v{width:1px;height:100%}
+.orbit-system{position:relative;width:220px;height:220px;margin-bottom:32px}
+.orbit-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;background:linear-gradient(135deg,var(--purple),var(--cyan));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 30px rgba(124,106,247,.5)}
+.orbit-ring{position:absolute;top:50%;left:50%;width:160px;height:160px;margin:-80px;border:1px dashed rgba(124,106,247,.25);border-radius:50%}
+.orbit-dot{position:absolute;top:50%;left:50%;width:14px;height:14px;margin:-7px;border-radius:50%;box-shadow:0 0 10px currentColor}
+.orbit-dot.a{animation:orbitA 4s linear infinite;background:var(--purple);color:var(--purple)}
+.orbit-dot.b{animation:orbitB 4s linear infinite;background:var(--cyan);color:var(--cyan)}
+.orbit-dot.c{animation:orbitC 4s linear infinite;background:var(--green);color:var(--green)}
+.welcome-title{font-size:28px;font-weight:700;letter-spacing:3px;color:var(--text);margin-bottom:4px}
+.welcome-sub{font-size:12px;color:var(--text3);letter-spacing:6px;margin-bottom:40px}
+.login-modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:28px;width:340px;animation:fadeIn .4s ease}
+.login-modal h3{text-align:center;font-size:14px;color:var(--text2);letter-spacing:2px;margin-bottom:20px}
+.member-btn{width:100%;padding:14px 20px;margin-bottom:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;gap:12px;transition:all .2s}
+.member-btn:hover{border-color:var(--purple);background:rgba(124,106,247,.1)}
+.member-btn .dot{width:10px;height:10px;border-radius:50%}
+.pin-input-area{margin-top:16px;display:none;animation:fadeIn .3s ease}
+.pin-input-area.show{display:block}
+.pin-input-area h4{font-size:12px;color:var(--text2);margin-bottom:10px;text-align:center}
+.pin-digits{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+.pin-digit{width:48px;height:56px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:24px;text-align:center;outline:none;transition:border-color .2s}
+.pin-digit:focus{border-color:var(--purple)}
+.pin-error{color:var(--red);font-size:12px;text-align:center;margin-bottom:8px;display:none}
+.btn-login{width:100%;padding:12px;background:var(--purple);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.btn-login:hover{background:var(--purple2)}
+
+/* ── TOP MENU BAR ── */
+#app{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:44px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-brand{font-size:11px;font-weight:700;letter-spacing:3px;color:var(--purple)}
+.topbar-nav{display:flex;gap:6px}
+.nav-btn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:12px;padding:6px 14px;border-radius:20px;transition:all .2s;letter-spacing:.5px}
+.nav-btn:hover,.nav-btn.active{color:var(--text);background:rgba(255,255,255,.06)}
+.nav-btn.leader{color:var(--amber)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.logout-btn{background:none;border:1px solid var(--border);color:var(--text3);cursor:pointer;font-size:11px;padding:4px 10px;border-radius:6px;transition:all .2s}
+.logout-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* ── PAGE WRAPPER ── */
+.page{display:none;animation:fadeIn .3s ease}
+.page.active{display:block}
+
+/* ── INDIVIDUAL DASHBOARD ── */
+.dash-wrap{padding:16px 20px;max-width:1400px;margin:0 auto}
+.dash-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;margin-bottom:14px;gap:16px}
+.dash-header-left{display:flex;flex-direction:column;gap:2px}
+.team-name{font-size:11px;font-weight:700;letter-spacing:3px;color:var(--purple)}
+.member-name{font-size:10px;color:var(--text3);letter-spacing:1px}
+.dash-header-center{text-align:center}
+.story-title{font-size:22px;font-weight:800;letter-spacing:2px;background:linear-gradient(135deg,var(--purple2),var(--cyan2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.builders-tag{font-size:10px;letter-spacing:5px;color:var(--text3);margin-top:2px}
+.goal-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,106,247,.12);border:1px solid rgba(124,106,247,.3);border-radius:20px;padding:5px 14px;margin-top:8px;font-size:12px;color:var(--purple2)}
+.dash-header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.status-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.status-label{font-size:10px;color:var(--text3);letter-spacing:1px}
+.status-select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:8px;font-size:12px;cursor:pointer;outline:none}
+.status-indicator{display:flex;align-items:center;gap:6px;font-size:12px}
+.status-dot{width:8px;height:8px;border-radius:50%}
+
+/* ── MAIN GRID ── */
+.dash-grid{display:grid;grid-template-columns:220px 1fr 220px;grid-template-rows:auto auto auto;gap:12px;align-items:start}
+.col-left{display:flex;flex-direction:column;gap:10px}
+.col-mid{display:flex;flex-direction:column;gap:10px}
+.col-right{display:flex;flex-direction:column;gap:10px}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card-header{padding:10px 14px 6px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.card-title{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text2)}
+.card-body{padding:10px 14px}
+.card-body.compact{padding:8px 12px}
+
+/* ── TASKS SIDEBAR ── */
+.task-list{list-style:none;display:flex;flex-direction:column;gap:4px}
+.task-item{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .15s;font-size:11px;color:var(--text2)}
+.task-item:hover{background:rgba(255,255,255,.04)}
+.task-item input[type=checkbox]{accent-color:var(--purple);cursor:pointer;flex-shrink:0;margin-top:1px}
+.task-item span{line-height:1.4}
+.task-item .weight-badge{font-size:9px;background:rgba(124,106,247,.15);color:var(--purple2);padding:1px 5px;border-radius:4px;flex-shrink:0;margin-left:auto}
+.see-more{width:100%;background:none;border:none;border-top:1px solid var(--border);color:var(--text3);font-size:10px;padding:6px;cursor:pointer;transition:color .15s;letter-spacing:1px}
+.see-more:hover{color:var(--purple)}
+
+/* ── ISSUE POSTS ── */
+.issue-feed{display:flex;flex-direction:column;gap:10px}
+.issue-post{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;animation:fadeIn .3s ease}
+.issue-post.urgent{border-color:rgba(239,68,68,.4)}
+.post-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.post-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.post-meta{flex:1}
+.post-author{font-size:12px;font-weight:600}
+.post-section{font-size:10px;color:var(--text3)}
+.post-time{font-size:10px;color:var(--text3);margin-left:auto}
+.post-body{font-size:12px;color:var(--text);margin-bottom:10px;line-height:1.6}
+.post-tried{background:rgba(245,158,11,.08);border-left:2px solid var(--amber);padding:6px 10px;border-radius:0 6px 6px 0;font-size:11px;color:var(--amber);margin-bottom:10px}
+.post-tried-label{font-size:10px;color:var(--text3);margin-bottom:2px}
+.comment-section{border-top:1px solid var(--border);padding-top:8px;margin-top:6px}
+.comment{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.05);font-size:11px}
+.comment-text{flex:1;color:var(--text2);line-height:1.5}
+.comment-author{font-size:10px;color:var(--text3);font-weight:600}
+.comment-checks{display:flex;gap:6px;flex-shrink:0}
+.cb-tried,.cb-solved{display:flex;align-items:center;gap:3px;cursor:pointer;font-size:9px}
+.cb-tried{color:var(--amber)}
+.cb-solved{color:var(--green)}
+.cb-tried input,.cb-solved input{accent-color:currentColor;cursor:pointer}
+.add-comment{display:flex;gap:6px;margin-top:8px}
+.add-comment input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:11px;outline:none}
+.add-comment input:focus{border-color:var(--purple)}
+.btn-sm{background:var(--purple);border:none;border-radius:6px;color:#fff;padding:5px 10px;cursor:pointer;font-size:10px;transition:all .2s;white-space:nowrap}
+.btn-sm:hover{background:var(--purple2)}
+.btn-sm.danger{background:rgba(239,68,68,.2);color:var(--red)}
+.btn-sm.success{background:rgba(16,185,129,.2);color:var(--green)}
+.no-issues{text-align:center;padding:24px;color:var(--text3);font-size:12px}
+.no-issues .icon{font-size:24px;margin-bottom:8px}
+
+/* ── NOTES WIDGET ── */
+.notes-widget{cursor:pointer;transition:border-color .2s}
+.notes-widget:hover{border-color:var(--border2)}
+.notes-preview{font-size:11px;color:var(--text3);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.notes-count{font-size:10px;color:var(--text3);margin-top:4px}
+
+/* ── PIE CHARTS ── */
+.charts-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.chart-title{font-size:9px;color:var(--text3);letter-spacing:1.5px;margin-bottom:10px}
+.pie-wrap{position:relative;width:80px;height:80px;margin:0 auto 8px}
+.pie-wrap svg{transform:rotate(-90deg)}
+.pie-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
+.chart-label{font-size:10px;color:var(--text2)}
+
+/* ── TECH STRIP ── */
+.tech-strip{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0}
+.tech-tag{font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:4px;padding:2px 7px;color:var(--text3);letter-spacing:.5px}
+
+/* ── OVERLAYS / MODALS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.modal{background:var(--card2);border:1px solid var(--border2);border-radius:16px;padding:24px;width:90%;max-width:560px;max-height:85vh;overflow-y:auto;animation:fadeIn .25s ease;position:relative}
+.modal.wide{max-width:700px}
+.modal.sm{max-width:380px}
+.modal-title{font-size:13px;font-weight:700;letter-spacing:2px;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;transition:color .2s}
+.modal-close:hover{color:var(--text)}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;color:var(--text2);margin-bottom:6px;display:block;letter-spacing:.5px}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:13px;outline:none;transition:border-color .2s;font-family:inherit}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--purple)}
+.form-textarea{resize:vertical;min-height:80px;line-height:1.6}
+.btn-primary{background:var(--purple);border:none;border-radius:8px;color:#fff;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+.btn-primary:hover{background:var(--purple2)}
+.btn-secondary{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:10px 20px;cursor:pointer;font-size:13px;transition:all .2s}
+.btn-secondary:hover{background:rgba(255,255,255,.06)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+
+/* ── TEAM UPDATE PAGE ── */
+.team-wrap{padding:16px 20px;max-width:1400px;margin:0 auto}
+.team-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;margin-bottom:14px;gap:16px}
+.team-grid{display:grid;grid-template-columns:1fr 260px;gap:12px}
+.team-main{display:flex;flex-direction:column;gap:10px}
+.team-side{display:flex;flex-direction:column;gap:10px}
+
+/* ── PROGRESS BARS ── */
+.progress-bar{background:var(--bg3);border-radius:20px;height:6px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:20px;transition:width .8s ease}
+
+/* ── MEMBER CARDS ── */
+.members-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.member-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.member-card-name{font-size:12px;font-weight:600;margin-bottom:4px}
+.member-card-role{font-size:10px;color:var(--text3);margin-bottom:8px}
+
+/* ── LEADER CONTROL ── */
+.leader-wrap{padding:16px 20px;max-width:1200px;margin:0 auto}
+.leader-header{text-align:center;margin-bottom:24px}
+.leader-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.leader-widget{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:all .25s;text-align:center}
+.leader-widget:hover{border-color:var(--purple);background:rgba(124,106,247,.08);transform:translateY(-2px)}
+.leader-widget-icon{font-size:32px;margin-bottom:10px}
+.leader-widget-title{font-size:12px;font-weight:700;color:var(--text);letter-spacing:1px;margin-bottom:4px}
+.leader-widget-desc{font-size:11px;color:var(--text3)}
+
+/* ── COMPARISON CHART ── */
+.compare-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.compare-title{font-size:11px;color:var(--text2);letter-spacing:2px;margin-bottom:16px}
+.compare-bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.compare-name{font-size:12px;width:70px;flex-shrink:0}
+.compare-bar-wrap{flex:1;background:var(--bg3);border-radius:20px;height:10px;overflow:hidden}
+.compare-bar{height:100%;border-radius:20px;transition:width 1s ease}
+.compare-pct{font-size:11px;color:var(--text2);width:36px;text-align:right;flex-shrink:0}
+
+/* ── DECORATIVE ELEMENTS ── */
+.deco-line{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:8px 0}
+.hex-bg{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;opacity:.03}
+.page-content{position:relative;z-index:1}
+.pulse-dot{display:inline-block;width:6px;height:6px;border-radius:50%;animation:pulse 1.5s ease infinite}
+
+/* ── SOLVED ISSUES ── */
+.solved-post{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px;margin-bottom:8px;font-size:11px}
+.solved-post-header{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;color:var(--green)}
+.solved-solution{background:rgba(16,185,129,.1);border-radius:6px;padding:6px 8px;margin-top:6px;font-size:11px;color:var(--green2)}
+
+/* ── PIN SCREEN ── */
+.pin-screen{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:500;flex-direction:column;gap:24px}
+.pin-screen.show{display:flex}
+.pin-screen-title{font-size:14px;color:var(--text2);letter-spacing:2px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ WELCOME -->
+<div id="welcome">
+  <div class="welcome-canvas" id="gridCanvas"></div>
+  <div class="orbit-system">
+    <div class="orbit-ring"></div>
+    <div class="orbit-center">&#129302;</div>
+    <div class="orbit-dot a"></div>
+    <div class="orbit-dot b"></div>
+    <div class="orbit-dot c"></div>
+  </div>
+  <div class="welcome-title">TEAM SUPERSONIC</div>
+  <div class="welcome-sub">ROBOT ODA &nbsp;&#x2022;&nbsp; AUTONOMOUS ROBOT</div>
+  <div class="login-modal" id="loginModal">
+    <h3>SELECT MEMBER</h3>
+    <button class="member-btn" onclick="selectMember('sadnan')">
+      <span class="dot" style="background:var(--sadnan)"></span>
+      Login as Sadnan
+      <span style="margin-left:auto;font-size:10px;color:var(--text3)">Team Leader</span>
+    </button>
+    <button class="member-btn" onclick="selectMember('tazin')">
+      <span class="dot" style="background:var(--tazin)"></span>
+      Login as Tazin
+      <span style="margin-left:auto;font-size:10px;color:var(--text3)">Member B</span>
+    </button>
+    <button class="member-btn" onclick="selectMember('akib')">
+      <span class="dot" style="background:var(--akib)"></span>
+      Login as Akib
+      <span style="margin-left:auto;font-size:10px;color:var(--text3)">Member C</span>
+    </button>
+    <div class="pin-input-area" id="pinArea">
+      <h4 id="pinPrompt">Enter PIN</h4>
+      <div class="pin-digits">
+        <input class="pin-digit" maxlength="1" type="password" id="p1" oninput="pinNext(this,'p2')">
+        <input class="pin-digit" maxlength="1" type="password" id="p2" oninput="pinNext(this,'p3')">
+        <input class="pin-digit" maxlength="1" type="password" id="p3" oninput="pinNext(this,'p4')">
+        <input class="pin-digit" maxlength="1" type="password" id="p4" oninput="pinSubmit()">
+      </div>
+      <div class="pin-error" id="pinError">Incorrect PIN. Try again.</div>
+      <button class="btn-login" onclick="checkPin()">Enter Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ MAIN APP -->
+<div id="app">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">SUPERSONIC // ODA</div>
+  <div class="topbar-nav" id="topNav"></div>
+  <div class="topbar-right">
+    <span id="topUserTag" style="font-size:11px;color:var(--text3)"></span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<!-- ═══ MY DASHBOARD PAGE ═══ -->
+<div class="page" id="pageDash">
+<div class="dash-wrap page-content">
+
+  <!-- HEADER -->
+  <div class="dash-header">
+    <div class="dash-header-left">
+      <div class="team-name">TEAM SUPER SONIC</div>
+      <div class="member-name" id="dashMemberName"></div>
+    </div>
+    <div class="dash-header-center">
+      <div class="story-title">Story of an Autonomous Robot</div>
+      <div class="builders-tag">WE ARE BUILDERS</div>
+      <div class="goal-badge" id="myGoalBadge">&#127919; Loading goal...</div>
+    </div>
+    <div class="dash-header-right">
+      <div class="status-wrap">
+        <div class="status-label">STATUS</div>
+        <select class="status-select" id="statusSelect" onchange="updateStatus()">
+          <option value="working">On work</option>
+          <option value="planning">Planning to work</option>
+          <option value="paused">Paused</option>
+          <option value="review">In review</option>
+          <option value="blocked">Blocked</option>
+          <option value="offline">Offline</option>
+        </select>
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot pulse-dot" id="statusDot"></span>
+          <span id="statusText"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="deco-line"></div>
+
+  <!-- TECH STRIP -->
+  <div class="tech-strip">
+    <span class="tech-tag">ROS 2 Humble</span>
+    <span class="tech-tag">Jetson Nano</span>
+    <span class="tech-tag">Arduino Mega</span>
+    <span class="tech-tag">Docker</span>
+    <span class="tech-tag">Tailscale</span>
+    <span class="tech-tag">Zenoh</span>
+    <span class="tech-tag">RPLiDAR A1M8</span>
+    <span class="tech-tag">Kinect 1414</span>
+    <span class="tech-tag">Nav2</span>
+    <span class="tech-tag">SLAM</span>
+    <span class="tech-tag">MPU6050</span>
+    <span class="tech-tag">IBT-2</span>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="dash-grid">
+
+    <!-- LEFT COL -->
+    <div class="col-left">
+      <!-- Done Section/Sub-section -->
+      <div class="card" style="flex:1">
+        <div class="card-header">
+          <span class="card-title">Done (Section/Sub-section)</span>
+          <span style="font-size:10px;color:var(--green)" id="doneSubCount">0</span>
+        </div>
+        <div class="card-body compact">
+          <ul class="task-list" id="doneSubList" style="max-height:160px;overflow-y:auto"></ul>
+          <button class="see-more" onclick="openModal('modalDoneSub')">see more &#x25BE;</button>
+        </div>
+      </div>
+      <!-- Notes Widget -->
+      <div class="card notes-widget" onclick="openModal('modalNotes')">
+        <div class="card-header">
+          <span class="card-title">&#128221; My Notes</span>
+          <span style="font-size:10px;color:var(--cyan)" id="notesCount">0 notes</span>
+        </div>
+        <div class="card-body compact">
+          <div class="notes-preview" id="notesPreview">Click to open your notes...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDDLE COL -->
+    <div class="col-mid">
+      <!-- Issue feed -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">&#128165; Current Issues</span>
+          <span style="font-size:10px;color:var(--red)" id="issueCount">0 open</span>
+        </div>
+        <div class="card-body" style="max-height:340px;overflow-y:auto">
+          <div class="issue-feed" id="issueFeed">
+            <div class="no-issues"><div class="icon">&#9989;</div>No open issues. Great work!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COL -->
+    <div class="col-right">
+      <!-- Upcoming Tasks -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Upcoming Tasks</span>
+          <span style="font-size:10px;color:var(--purple)" id="upcomingCount">0</span>
+        </div>
+        <div class="card-body compact">
+          <ul class="task-list" id="upcomingList" style="max-height:140px;overflow-y:auto"></ul>
+          <button class="see-more" onclick="openModal('modalUpcoming')">see more &#x25BE;</button>
+        </div>
+        <div style="padding:0 12px 10px">
+          <div style="display:flex;gap:6px">
+            <input class="form-input" id="newTaskInput" placeholder="Add task..." style="font-size:11px;padding:5px 8px" onkeydown="if(event.key==='Enter')addMyTask()">
+            <button class="btn-sm" onclick="addMyTask()">Add</button>
+          </div>
+        </div>
+      </div>
+      <!-- Done Session -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Done (Session)</span>
+          <span style="font-size:10px;color:var(--green)" id="doneSessionCount">0</span>
+        </div>
+        <div class="card-body compact">
+          <ul class="task-list" id="doneSessionList" style="max-height:120px;overflow-y:auto"></ul>
+          <button class="see-more" onclick="openModal('modalDoneSession')">see more &#x25BE;</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dash-grid -->
+
+  <!-- CHARTS ROW -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">INDIVIDUAL OVERALL</div>
+      <div class="pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="10"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--purple)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="chart1Circle" style="transition:stroke-dashoffset 1s ease"/></svg><div class="pie-pct" id="chart1Pct" style="color:var(--purple)">0%</div></div>
+      <div class="chart-label" id="chart1Label">0 / 0 sessions</div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">CURRENT PHASE</div>
+      <div class="pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="10"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--cyan)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="chart2Circle" style="transition:stroke-dashoffset 1s ease"/></svg><div class="pie-pct" id="chart2Pct" style="color:var(--cyan)">0%</div></div>
+      <div class="chart-label" id="chart2Label">0 / 0 sub-tasks</div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">PROJECT SCOPE</div>
+      <div class="pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="10"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--green)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="chart3Circle" style="transition:stroke-dashoffset 1s ease"/></svg><div class="pie-pct" id="chart3Pct" style="color:var(--green)">0%</div></div>
+      <div class="chart-label" id="chart3Label">vs full project</div>
+    </div>
+  </div>
+
+</div><!-- /dash-wrap -->
+</div><!-- /pageDash -->
+
+<!-- ═══ TEAM UPDATE PAGE ═══ -->
+<div class="page" id="pageTeam">
+<div class="team-wrap page-content">
+  <div class="team-header">
+    <div>
+      <div class="team-name">TEAM SUPER SONIC</div>
+      <div class="member-name">Overview</div>
+    </div>
+    <div style="text-align:center">
+      <div class="story-title">Story of an Autonomous Robot</div>
+      <div class="goal-badge" id="teamFinalTarget" style="margin-top:8px">&#127945; Final Target: Complete robot_oda v1.0</div>
+    </div>
+    <div style="text-align:right">
+      <div class="status-label" style="font-size:10px;color:var(--text3);letter-spacing:1px;margin-bottom:4px">NEXT TARGET</div>
+      <div id="teamNextTarget" style="font-size:13px;font-weight:600;color:var(--cyan)">Phase integration</div>
+    </div>
+  </div>
+  <div class="deco-line"></div>
+
+  <!-- MEMBERS ROW -->
+  <div class="members-row" style="margin-bottom:12px">
+    <div class="member-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--sadnan);display:inline-block"></span>
+        <span class="member-card-name">Sadnan</span>
+      </div>
+      <div class="member-card-role">Track A — Hardware + Embedded + Integration</div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-sadnan" style="background:var(--sadnan);width:0%"></div></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px" id="prog-sadnan-lbl">0%</div>
+    </div>
+    <div class="member-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--tazin);display:inline-block"></span>
+        <span class="member-card-name">Tazin</span>
+      </div>
+      <div class="member-card-role">Track B — ROS 2 + Nav2 + Laptop Stack</div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-tazin" style="background:var(--tazin);width:0%"></div></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px" id="prog-tazin-lbl">0%</div>
+    </div>
+    <div class="member-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--akib);display:inline-block"></span>
+        <span class="member-card-name">Akib</span>
+      </div>
+      <div class="member-card-role">Track C — Firmware + Safety + Network</div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-akib" style="background:var(--akib);width:0%"></div></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px" id="prog-akib-lbl">0%</div>
+    </div>
+  </div>
+
+  <div class="team-grid">
+    <div class="team-main">
+      <!-- Overall Project Progress -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">&#127760; Whole Project Progress</span>
+        </div>
+        <div class="card-body" style="display:flex;align-items:center;gap:20px">
+          <div class="pie-wrap" style="flex-shrink:0"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="10"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--purple)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="teamChartCircle" style="transition:stroke-dashoffset 1s ease"/></svg><div class="pie-pct" id="teamChartPct" style="color:var(--purple)">0%</div></div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px">Overall Implementation</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Combined progress across all three tracks</div>
+            <div class="progress-bar" style="height:8px"><div class="progress-fill" id="teamProgressBar" style="background:linear-gradient(90deg,var(--purple),var(--cyan));width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Solved Issues -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">&#9989; Solved Issues</span>
+          <span style="font-size:10px;color:var(--green)" id="solvedCount">0 solved</span>
+        </div>
+        <div class="card-body" style="max-height:200px;overflow-y:auto">
+          <div id="solvedFeed"><div class="no-issues" style="padding:16px"><div class="icon">&#128218;</div>No solved issues yet</div></div>
+        </div>
+      </div>
+
+      <!-- Team Notes -->
+      <div class="card notes-widget" onclick="openModal('modalTeamNotes')">
+        <div class="card-header">
+          <span class="card-title">&#128218; Team Notes &amp; Reference</span>
+          <span style="font-size:10px;color:var(--cyan)">Implementation Bible stored</span>
+        </div>
+        <div class="card-body compact">
+          <div class="notes-preview" id="teamNotesPreview">Implementation Bible v4.0 — robot_oda. Click to open team knowledge base...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="team-side">
+      <!-- Team Upcoming Tasks -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Team Upcoming</span>
+          <span style="font-size:10px;color:var(--purple)" id="teamUpcomingCount">0</span>
+        </div>
+        <div class="card-body compact">
+          <ul class="task-list" id="teamUpcomingList" style="max-height:140px;overflow-y:auto"></ul>
+          <button class="see-more" onclick="openModal('modalTeamUpcoming')">see more &#x25BE;</button>
+        </div>
+      </div>
+      <!-- Team Done -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Team Done</span>
+          <span style="font-size:10px;color:var(--green)" id="teamDoneCount">0</span>
+        </div>
+        <div class="card-body compact">
+          <ul class="task-list" id="teamDoneList" style="max-height:140px;overflow-y:auto"></ul>
+          <button class="see-more" onclick="openModal('modalTeamDone')">see more &#x25BE;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- /pageTeam -->
+
+<!-- ═══ LEADER CONTROL PAGE ═══ -->
+<div class="page" id="pageLeader">
+<div class="leader-wrap page-content">
+  <div class="leader-header">
+    <div class="team-name" style="text-align:center;margin-bottom:2px">TEAM SUPER SONIC</div>
+    <div style="font-size:10px;color:var(--text3);letter-spacing:2px;text-align:center;margin-bottom:12px">HEY! TEAM LEADER!</div>
+    <div class="story-title" style="font-size:20px">Story of an Autonomous Robot</div>
+    <div style="font-size:11px;color:var(--amber);letter-spacing:4px;margin-top:4px">NEVER STOP!</div>
+  </div>
+
+  <div class="leader-grid">
+    <div class="leader-widget" onclick="openModal('modalTeamDirection')">
+      <div class="leader-widget-icon">&#127919;</div>
+      <div class="leader-widget-title">Team Direction</div>
+      <div class="leader-widget-desc">Set next &amp; final targets for the whole team</div>
+    </div>
+    <div class="leader-widget" onclick="openModal('modalMemberDirection')">
+      <div class="leader-widget-icon">&#128100;</div>
+      <div class="leader-widget-title">Member Direction</div>
+      <div class="leader-widget-desc">Assign individual goals to each member</div>
+    </div>
+    <div class="leader-widget" onclick="openModal('modalAddTasks')">
+      <div class="leader-widget-icon">&#43;</div>
+      <div class="leader-widget-title">Add Tasks</div>
+      <div class="leader-widget-desc">Add upcoming or session tasks to any member</div>
+    </div>
+  </div>
+
+  <!-- Performance Graph -->
+  <div class="compare-wrap">
+    <div class="compare-title">MEMBER PERFORMANCE COMPARISON</div>
+    <div class="compare-bar-row">
+      <span class="compare-name" style="color:var(--sadnan)">Sadnan</span>
+      <div class="compare-bar-wrap"><div class="compare-bar" id="cmpSadnan" style="background:var(--sadnan);width:0%"></div></div>
+      <span class="compare-pct" id="cmpSadnanPct">0%</span>
+    </div>
+    <div class="compare-bar-row">
+      <span class="compare-name" style="color:var(--tazin)">Tazin</span>
+      <div class="compare-bar-wrap"><div class="compare-bar" id="cmpTazin" style="background:var(--tazin);width:0%"></div></div>
+      <span class="compare-pct" id="cmpTazinPct">0%</span>
+    </div>
+    <div class="compare-bar-row">
+      <span class="compare-name" style="color:var(--akib)">Akib</span>
+      <div class="compare-bar-wrap"><div class="compare-bar" id="cmpAkib" style="background:var(--akib);width:0%"></div></div>
+      <span class="compare-pct" id="cmpAkibPct">0%</span>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:12px">Weighted score: tasks completed × difficulty × pace factor</div>
+  </div>
+</div>
+</div><!-- /pageLeader -->
+
+</div><!-- /app -->
+
+<!-- ═══════════════════════════════ MODALS ═══ -->
+
+<!-- Leader PIN Screen -->
+<div class="pin-screen" id="leaderPinScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <div style="font-size:32px;margin-bottom:8px">&#128274;</div>
+    <div class="pin-screen-title">LEADER CONTROL ACCESS</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px">Enter admin PIN to continue</div>
+  </div>
+  <div class="login-modal" style="width:300px">
+    <div class="pin-digits" style="justify-content:center">
+      <input class="pin-digit" maxlength="1" type="password" id="lp1" oninput="pinNext(this,'lp2')">
+      <input class="pin-digit" maxlength="1" type="password" id="lp2" oninput="pinNext(this,'lp3')">
+      <input class="pin-digit" maxlength="1" type="password" id="lp3" oninput="pinNext(this,'lp4')">
+      <input class="pin-digit" maxlength="1" type="password" id="lp4" oninput="leaderPinSubmit()">
+    </div>
+    <div class="pin-error" id="leaderPinError">Incorrect admin PIN.</div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-secondary" style="flex:1" onclick="closeLeaderPin()">Cancel</button>
+      <button class="btn-primary" style="flex:1" onclick="checkLeaderPin()">Enter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Post Error Modal -->
+<div class="overlay" id="overlayPostError">
+<div class="modal wide">
+  <button class="modal-close" onclick="closeModal('overlayPostError')">&times;</button>
+  <div class="modal-title">&#128165; Post an Error / Issue</div>
+  <div class="form-group">
+    <label class="form-label">Section / Phase / Session</label>
+    <select class="form-select" id="errSection">
+      <option value="">-- Select or type below --</option>
+      <option>Section 0 — Document Control</option>
+      <option>Section 1 — System Overview</option>
+      <option>Section 2 — Hardware Specification</option>
+      <option>Section 3 — OS Setup (Jetson)</option>
+      <option>Section 4 — Network Setup</option>
+      <option>Section 5 — Docker Environment</option>
+      <option>Section 6 — ROS 2 Environment</option>
+      <option>Section 7 — Zenoh Configuration</option>
+      <option>Section 8 — File Structure</option>
+      <option>Section 9 — Node Implementation</option>
+      <option>Section 10 — Safety System</option>
+      <option>Section 11 — Arduino Firmware</option>
+      <option>Section 12 — Launch System</option>
+      <option>Section 13 — Testing & Verification</option>
+      <option>Section 14 — Performance</option>
+      <option>Section 15 — Troubleshooting</option>
+      <option>Section 16 — Deployment Modes</option>
+      <option>Phase 0 — Hardware Prep</option>
+      <option>Phase 1 — Jetson OS</option>
+      <option>Phase 2 — Network</option>
+      <option>Phase 3 — Arduino Firmware</option>
+      <option>Phase 4 — Docker Container</option>
+      <option>Phase 5 — Unit Tests</option>
+      <option>Phase 6 — Zenoh Bridge</option>
+      <option>Phase 7 — Safety + Navigation</option>
+    </select>
+    <input class="form-input" id="errSectionCustom" placeholder="Or type custom identifier..." style="margin-top:6px">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Error / Issue Description</label>
+    <textarea class="form-textarea" id="errBody" placeholder="Describe the error, paste exact error messages, logs, or share source links..." style="min-height:100px"></textarea>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Solutions Already Tried</label>
+    <textarea class="form-textarea" id="errTried" placeholder="What have you already tried to fix this?..." style="min-height:60px"></textarea>
+  </div>
+  <div class="modal-footer">
+    <button class="btn-secondary" onclick="closeModal('overlayPostError')">Cancel</button>
+    <button class="btn-primary" onclick="postIssue()">Post Issue &#128165;</button>
+  </div>
+</div>
+</div>
+
+<!-- Upcoming Tasks Modal -->
+<div class="overlay" id="modalUpcoming">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modalUpcoming')">&times;</button>
+  <div class="modal-title">&#128197; All Upcoming Tasks</div>
+  <ul class="task-list" id="upcomingListFull" style="max-height:400px;overflow-y:auto"></ul>
+  <div style="display:flex;gap:6px;margin-top:12px">
+    <input class="form-input" id="newTaskInputFull" placeholder="Add new task..." onkeydown="if(event.key==='Enter')addMyTask()">
+    <button class="btn-primary" onclick="addMyTask()">Add</button>
+  </div>
+</div>
+</div>
+
+<!-- Done Session Modal -->
+<div class="overlay" id="modalDoneSession">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modalDoneSession')">&times;</button>
+  <div class="modal-title">&#9989; Done (Session) — All</div>
+  <ul class="task-list" id="doneSessionListFull" style="max-height:400px;overflow-y:auto"></ul>
+</div>
+</div>
+
+<!-- Done Sub-section Modal -->
+<div class="overlay" id="modalDoneSub">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modalDoneSub')">&times;</button>
+  <div class="modal-title">&#9989; Done (Section/Sub-section) — All</div>
+  <ul class="task-list" id="doneSubListFull" style="max-height:400px;overflow-y:auto"></ul>
+  <div style="display:flex;gap:6px;margin-top:12px">
+    <input class="form-input" id="newSubTaskInput" placeholder="Add completed sub-task...">
+    <button class="btn-primary" onclick="addSubTask()">Add</button>
+  </div>
+</div>
+</div>
+
+<!-- Notes Modal -->
+<div class="overlay" id="modalNotes">
+<div class="modal wide">
+  <button class="modal-close" onclick="closeModal('modalNotes')">&times;</button>
+  <div class="modal-title">&#128221; My Notes</div>
+  <div style="display:flex;gap:10px;margin-bottom:12px">
+    <button class="btn-primary" onclick="addNote()">&#43; New Note</button>
+  </div>
+  <div id="notesList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-height:420px;overflow-y:auto"></div>
+</div>
+</div>
+
+<!-- Team Notes Modal -->
+<div class="overlay" id="modalTeamNotes">
+<div class="modal wide">
+  <button class="modal-close" onclick="closeModal('modalTeamNotes')">&times;</button>
+  <div class="modal-title">&#128218; Team Knowledge Base</div>
+  <div style="display:flex;gap:10px;margin-bottom:12px">
+    <button class="btn-primary" onclick="addTeamNote()">&#43; New Note</button>
+  </div>
+  <div id="teamNotesList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-height:420px;overflow-y:auto"></div>
+</div>
+</div>
+
+<!-- Team Upcoming Modal -->
+<div class="overlay" id="modalTeamUpcoming">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modalTeamUpcoming')">&times;</button>
+  <div class="modal-title">&#128197; Team Upcoming Tasks</div>
+  <ul class="task-list" id="teamUpcomingListFull" style="max-height:400px;overflow-y:auto"></ul>
+</div>
+</div>
+
+<!-- Team Done Modal -->
+<div class="overlay" id="modalTeamDone">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modalTeamDone')">&times;</button>
+  <div class="modal-title">&#9989; Team Done Tasks</div>
+  <ul class="task-list" id="teamDoneListFull" style="max-height:400px;overflow-y:auto"></ul>
+</div>
+</div>
+
+<!-- Leader: Team Direction -->
+<div class="overlay" id="modalTeamDirection">
+<div class="modal sm">
+  <button class="modal-close" onclick="closeModal('modalTeamDirection')">&times;</button>
+  <div class="modal-title">&#127919; Team Direction</div>
+  <div class="form-group">
+    <label class="form-label">Next Target for the Team</label>
+    <input class="form-input" id="inputNextTarget" placeholder="e.g. Complete Phase 4 by this week">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Final Target for the Team</label>
+    <input class="form-input" id="inputFinalTarget" placeholder="e.g. Complete robot_oda v1.0">
+  </div>
+  <div class="modal-footer">
+    <button class="btn-secondary" onclick="closeModal('modalTeamDirection')">Cancel</button>
+    <button class="btn-primary" onclick="saveTeamDirection()">Update &#9654;</button>
+  </div>
+</div>
+</div>
+
+<!-- Leader: Member Direction -->
+<div class="overlay" id="modalMemberDirection">
+<div class="modal sm">
+  <button class="modal-close" onclick="closeModal('modalMemberDirection')">&times;</button>
+  <div class="modal-title">&#128100; Member Direction</div>
+  <div class="form-group">
+    <label class="form-label">Select Member</label>
+    <select class="form-select" id="dirMember">
+      <option value="sadnan">Sadnan</option>
+      <option value="tazin">Tazin</option>
+      <option value="akib">Akib</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Individual Target / Goal</label>
+    <textarea class="form-textarea" id="dirGoal" placeholder="Describe their assigned target..." style="min-height:70px"></textarea>
+  </div>
+  <div class="modal-footer">
+    <button class="btn-secondary" onclick="closeModal('modalMemberDirection')">Cancel</button>
+    <button class="btn-primary" onclick="saveMemberDirection()">Update &#9654;</button>
+  </div>
+</div>
+</div>
+
+<!-- Leader: Add Tasks -->
+<div class="overlay" id="modalAddTasks">
+<div class="modal sm">
+  <button class="modal-close" onclick="closeModal('modalAddTasks')">&times;</button>
+  <div class="modal-title">&#43; Add Tasks</div>
+  <div class="form-group">
+    <label class="form-label">Member</label>
+    <select class="form-select" id="taskMember">
+      <option value="sadnan">Sadnan</option>
+      <option value="tazin">Tazin</option>
+      <option value="akib">Akib</option>
+      <option value="team">Whole Team</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Task Type</label>
+    <select class="form-select" id="taskType">
+      <option value="upcoming">Upcoming Task (Session level)</option>
+      <option value="sub">Sub-section Task (Done tracker)</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Task Description</label>
+    <input class="form-input" id="taskDesc" placeholder="Describe the task...">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Estimated Weight (1=easy, 3=hard)</label>
+    <select class="form-select" id="taskWeight">
+      <option value="1">1 — Easy / Quick</option>
+      <option value="2" selected>2 — Moderate</option>
+      <option value="3">3 — Hard / Time-intensive</option>
+    </select>
+  </div>
+  <div class="modal-footer">
+    <button class="btn-secondary" onclick="closeModal('modalAddTasks')">Cancel</button>
+    <button class="btn-primary" onclick="leaderAddTask()">Add Task &#9654;</button>
+  </div>
+</div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// FIREBASE CONFIG — replace with YOUR Firebase project values
+// ═══════════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBjtJ-WGHZNSTIi78v325gWFnrNBvC-Yac",
+  authDomain: "robot-oda-dashboard.firebaseapp.com",
+  databaseURL: "https://robot-oda-dashboard-default-rtdb.firebaseio.com",
+  projectId: "robot-oda-dashboard",
+  storageBucket: "robot-oda-dashboard.firebasestorage.app",
+  messagingSenderId: "391153062918",
+  appId: "1:391153062918:web:47bfca0e7d39a564eb5f87"
+};
+
+// ── PINS (hashed comparison) ──────────────────────────────────────
+const PINS = { sadnan:'5102', tazin:'1234', akib:'1234' };
+const ADMIN_PIN = '2580';
+
+// ── STATE ─────────────────────────────────────────────────────────
+let db, currentUser = null, leaderUnlocked = false;
+let fbReady = false;
+
+// Default member goals
+const DEFAULT_GOALS = {
+  sadnan: 'Track A: Hardware + Embedded + Final Integration lead',
+  tazin:  'Track B: ROS 2, Nav2, Laptop Docker stack',
+  akib:   'Track C: Arduino Firmware + Safety Node + Network configs'
+};
+
+// ── FIREBASE INIT ──────────────────────────────────────────────────
+function initFirebase() {
+  try {
+    firebase.initializeApp(FB_CONFIG);
+    db = firebase.database();
+    fbReady = true;
+    console.log('Firebase ready');
+  } catch(e) {
+    console.warn('Firebase init failed — using localStorage fallback', e);
+    fbReady = false;
+  }
+}
+
+// ── DATA LAYER: read/write with Firebase + localStorage fallback ───
+function dbSet(path, value) {
+  if (fbReady) return db.ref(path).set(value);
+  localStorage.setItem('oda_' + path.replace(/\//g,'_'), JSON.stringify(value));
+  return Promise.resolve();
+}
+function dbPush(path, value) {
+  if (fbReady) return db.ref(path).push(value);
+  const key = 'k' + Date.now();
+  const all = dbGetLocal(path);
+  all[key] = value;
+  localStorage.setItem('oda_' + path.replace(/\//g,'_'), JSON.stringify(all));
+  return Promise.resolve({ key });
+}
+function dbUpdate(path, value) {
+  if (fbReady) return db.ref(path).update(value);
+  const existing = dbGetLocal(path);
+  Object.assign(existing, value);
+  localStorage.setItem('oda_' + path.replace(/\//g,'_'), JSON.stringify(existing));
+  return Promise.resolve();
+}
+function dbRemove(path) {
+  if (fbReady) return db.ref(path).remove();
+  localStorage.removeItem('oda_' + path.replace(/\//g,'_'));
+  return Promise.resolve();
+}
+function dbGetLocal(path) {
+  try { return JSON.parse(localStorage.getItem('oda_' + path.replace(/\//g,'_')) || '{}'); }
+  catch(e) { return {}; }
+}
+function dbOn(path, cb) {
+  if (fbReady) {
+    db.ref(path).on('value', snap => cb(snap.val() || {}));
+  } else {
+    cb(dbGetLocal(path));
+    setInterval(() => cb(dbGetLocal(path)), 2000);
+  }
+}
+function dbOnce(path, cb) {
+  if (fbReady) {
+    db.ref(path).once('value', snap => cb(snap.val()));
+  } else {
+    cb(dbGetLocal(path));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// WELCOME GRID ANIMATION
+// ═══════════════════════════════════════════════════════════════════
+function buildGrid() {
+  const c = document.getElementById('gridCanvas');
+  for (let i=0;i<20;i++){const l=document.createElement('div');l.className='grid-line h';l.style.top=(i*5.5)+'%';c.appendChild(l);}
+  for (let i=0;i<20;i++){const l=document.createElement('div');l.className='grid-line v';l.style.left=(i*5.5)+'%';c.appendChild(l);}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════════
+let pendingMember = null;
+
+function selectMember(m) {
+  pendingMember = m;
+  document.getElementById('pinArea').classList.add('show');
+  document.getElementById('pinPrompt').textContent = 'PIN for ' + m.charAt(0).toUpperCase() + m.slice(1);
+  document.getElementById('pinError').style.display = 'none';
+  ['p1','p2','p3','p4'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('p1').focus();
+}
+
+function pinNext(el, nextId) {
+  if (el.value.length === 1) document.getElementById(nextId).focus();
+}
+
+function pinSubmit() { checkPin(); }
+
+function checkPin() {
+  const pin = ['p1','p2','p3','p4'].map(id => document.getElementById(id).value).join('');
+  if (pin === PINS[pendingMember]) {
+    loginUser(pendingMember);
+  } else {
+    document.getElementById('pinError').style.display = 'block';
+    ['p1','p2','p3','p4'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('p1').focus();
+  }
+}
+
+function loginUser(member) {
+  currentUser = member;
+  leaderUnlocked = false;
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  buildNav();
+  document.getElementById('topUserTag').textContent = member.charAt(0).toUpperCase() + member.slice(1);
+  initDashboard();
+  showPage('pageDash');
+}
+
+function logout() {
+  currentUser = null; leaderUnlocked = false;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('welcome').style.display = 'flex';
+  ['p1','p2','p3','p4'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pinArea').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════════
+function buildNav() {
+  const nav = document.getElementById('topNav');
+  nav.innerHTML = '';
+  const pages = ['My Dashboard','Team Update','Post an Error!'];
+  if (currentUser === 'sadnan') pages.push('Leader Control');
+  pages.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'nav-btn' + (p === 'Leader Control' ? ' leader' : '');
+    b.textContent = p;
+    b.onclick = () => navClick(p);
+    nav.appendChild(b);
+  });
+  setActiveNav('My Dashboard');
+}
+
+function setActiveNav(label) {
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === label);
+  });
+}
+
+function navClick(label) {
+  if (label === 'My Dashboard') { showPage('pageDash'); setActiveNav(label); }
+  else if (label === 'Team Update') { showPage('pageTeam'); setActiveNav(label); loadTeamPage(); }
+  else if (label === 'Post an Error!') { openModal('overlayPostError'); }
+  else if (label === 'Leader Control') { showLeaderPinPrompt(); }
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LEADER PIN
+// ═══════════════════════════════════════════════════════════════════
+function showLeaderPinPrompt() {
+  if (leaderUnlocked) { showPage('pageLeader'); setActiveNav('Leader Control'); loadLeaderPage(); return; }
+  document.getElementById('leaderPinScreen').classList.add('show');
+  ['lp1','lp2','lp3','lp4'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('leaderPinError').style.display = 'none';
+  document.getElementById('lp1').focus();
+}
+function leaderPinSubmit() { checkLeaderPin(); }
+function checkLeaderPin() {
+  const pin = ['lp1','lp2','lp3','lp4'].map(id => document.getElementById(id).value).join('');
+  if (pin === ADMIN_PIN) {
+    leaderUnlocked = true;
+    document.getElementById('leaderPinScreen').classList.remove('show');
+    showPage('pageLeader'); setActiveNav('Leader Control'); loadLeaderPage();
+  } else {
+    document.getElementById('leaderPinError').style.display = 'block';
+    ['lp1','lp2','lp3','lp4'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('lp1').focus();
+  }
+}
+function closeLeaderPin() { document.getElementById('leaderPinScreen').classList.remove('show'); }
+
+// ═══════════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+// Close overlays on background click
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// DASHBOARD INIT
+// ═══════════════════════════════════════════════════════════════════
+function initDashboard() {
+  const u = currentUser;
+  document.getElementById('dashMemberName').textContent = u.charAt(0).toUpperCase() + u.slice(1);
+
+  // Listen to goal
+  dbOn(`goals/${u}`, val => {
+    document.getElementById('myGoalBadge').textContent = '🎯 ' + (val || DEFAULT_GOALS[u]);
+  });
+
+  // Status
+  dbOn(`status/${u}`, val => {
+    const s = val || 'working';
+    document.getElementById('statusSelect').value = s;
+    renderStatus(s);
+  });
+
+  // Upcoming tasks
+  dbOn(`tasks/${u}/upcoming`, tasks => {
+    renderUpcoming(tasks || {});
+  });
+
+  // Done session
+  dbOn(`tasks/${u}/doneSession`, tasks => {
+    renderDoneSession(tasks || {});
+  });
+
+  // Done sub-section
+  dbOn(`tasks/${u}/doneSub`, tasks => {
+    renderDoneSub(tasks || {});
+  });
+
+  // Issues (all users see all issues)
+  dbOn('issues', issues => {
+    renderIssueFeed(issues || {});
+  });
+
+  // Notes
+  dbOn(`notes/${u}`, notes => {
+    renderNotes(notes || {});
+  });
+
+  // Charts
+  dbOn(`tasks/${u}`, all => { updateCharts(all || {}); });
+
+  // Load current values for leader direction modal
+  dbOnce(`teamTargets/next`, v => { if(v) document.getElementById('inputNextTarget').value = v; });
+  dbOnce(`teamTargets/final`, v => { if(v) document.getElementById('inputFinalTarget').value = v; });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STATUS
+// ═══════════════════════════════════════════════════════════════════
+const STATUS_CONFIG = {
+  working:  { color:'#10b981', label: u => u+' is on work' },
+  planning: { color:'#f59e0b', label: u => u+' is planning' },
+  paused:   { color:'#94a3b8', label: u => u+' is paused' },
+  review:   { color:'#7c6af7', label: u => u+' is reviewing' },
+  blocked:  { color:'#ef4444', label: u => u+' is blocked' },
+  offline:  { color:'#334466', label: u => u+' is offline' },
+};
+function renderStatus(s) {
+  const cfg = STATUS_CONFIG[s] || STATUS_CONFIG.working;
+  const name = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
+  document.getElementById('statusDot').style.background = cfg.color;
+  document.getElementById('statusDot').style.boxShadow = `0 0 6px ${cfg.color}`;
+  document.getElementById('statusText').textContent = cfg.label(name);
+  document.getElementById('statusText').style.color = cfg.color;
+}
+function updateStatus() {
+  const s = document.getElementById('statusSelect').value;
+  dbSet(`status/${currentUser}`, s);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TASKS
+// ═══════════════════════════════════════════════════════════════════
+function renderUpcoming(tasks) {
+  const entries = Object.entries(tasks);
+  const open = entries.filter(([,v]) => !v.done);
+  document.getElementById('upcomingCount').textContent = open.length;
+  renderTaskList('upcomingList', open.slice(0,5), 'upcoming', true);
+  renderTaskList('upcomingListFull', open, 'upcoming', true);
+}
+
+function renderDoneSession(tasks) {
+  const entries = Object.entries(tasks);
+  document.getElementById('doneSessionCount').textContent = entries.length;
+  renderTaskList('doneSessionList', entries.slice(0,4), 'doneSession', false, true);
+  renderTaskList('doneSessionListFull', entries, 'doneSession', false, true);
+  // Also update team done
+  updateTeamDone();
+}
+
+function renderDoneSub(tasks) {
+  const entries = Object.entries(tasks);
+  document.getElementById('doneSubCount').textContent = entries.length;
+  renderTaskList('doneSubList', entries.slice(0,4), 'doneSub', false, true);
+  renderTaskList('doneSubListFull', entries, 'doneSub', false, true);
+}
+
+function renderTaskList(elId, entries, type, checkable, uncheckable) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = '';
+  if (!entries.length) { el.innerHTML = '<li style="font-size:11px;color:var(--text3);padding:8px">No tasks here yet</li>'; return; }
+  entries.forEach(([key, task]) => {
+    const li = document.createElement('li');
+    li.className = 'task-item';
+    const w = task.weight || 1;
+    li.innerHTML = `
+      <input type="checkbox" ${task.done?'checked':''} onchange="toggleTask('${type}','${key}',this.checked)">
+      <span>${task.text || task}</span>
+      <span class="weight-badge">w${w}</span>
+    `;
+    el.appendChild(li);
+  });
+}
+
+function addMyTask() {
+  const inp1 = document.getElementById('newTaskInput');
+  const inp2 = document.getElementById('newTaskInputFull');
+  const text = (inp1 && inp1.value.trim()) || (inp2 && inp2.value.trim());
+  if (!text) return;
+  dbPush(`tasks/${currentUser}/upcoming`, { text, done: false, weight:1, created: Date.now() });
+  if (inp1) inp1.value = '';
+  if (inp2) inp2.value = '';
+}
+
+function addSubTask() {
+  const inp = document.getElementById('newSubTaskInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  dbPush(`tasks/${currentUser}/doneSub`, { text, weight:1, created: Date.now() });
+  inp.value = '';
+}
+
+function toggleTask(type, key, checked) {
+  if (type === 'upcoming') {
+    if (checked) {
+      dbOnce(`tasks/${currentUser}/upcoming/${key}`, val => {
+        setTimeout(() => {
+          dbPush(`tasks/${currentUser}/doneSession`, { ...val, done: true, completedAt: Date.now() });
+          dbRemove(`tasks/${currentUser}/upcoming/${key}`);
+        }, 5000);
+      });
+    }
+  } else if (type === 'doneSession' && !checked) {
+    dbOnce(`tasks/${currentUser}/doneSession/${key}`, val => {
+      dbPush(`tasks/${currentUser}/upcoming`, { ...val, done: false });
+      dbRemove(`tasks/${currentUser}/doneSession/${key}`);
+    });
+  } else if (type === 'doneSub' && !checked) {
+    dbRemove(`tasks/${currentUser}/doneSub/${key}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ISSUES
+// ═══════════════════════════════════════════════════════════════════
+const MEMBER_COLORS = { sadnan:'var(--sadnan)', tazin:'var(--tazin)', akib:'var(--akib)' };
+
+function postIssue() {
+  const section = document.getElementById('errSection').value || document.getElementById('errSectionCustom').value;
+  const body = document.getElementById('errBody').value.trim();
+  const tried = document.getElementById('errTried').value.trim();
+  if (!body) { alert('Please describe the issue.'); return; }
+  const issue = {
+    author: currentUser,
+    section: section || 'General',
+    body, tried,
+    comments: {},
+    solved: false,
+    created: Date.now()
+  };
+  dbPush('issues', issue);
+  closeModal('overlayPostError');
+  document.getElementById('errBody').value = '';
+  document.getElementById('errTried').value = '';
+  document.getElementById('errSectionCustom').value = '';
+}
+
+function renderIssueFeed(issues) {
+  const open = Object.entries(issues).filter(([,v]) => !v.solved);
+  const feed = document.getElementById('issueFeed');
+  document.getElementById('issueCount').textContent = open.length + ' open';
+
+  if (!open.length) {
+    feed.innerHTML = '<div class="no-issues"><div class="icon">&#9989;</div>No open issues. Great work!</div>';
+  } else {
+    feed.innerHTML = '';
+    open.sort((a,b) => b[1].created - a[1].created).forEach(([key, issue]) => {
+      feed.appendChild(buildIssuePost(key, issue));
+    });
+  }
+
+  // Render solved on team page
+  const solved = Object.entries(issues).filter(([,v]) => v.solved);
+  const sf = document.getElementById('solvedFeed');
+  if (sf) {
+    document.getElementById('solvedCount').textContent = solved.length + ' solved';
+    if (!solved.length) {
+      sf.innerHTML = '<div class="no-issues" style="padding:16px"><div class="icon">&#128218;</div>No solved issues yet</div>';
+    } else {
+      sf.innerHTML = '';
+      solved.sort((a,b) => b[1].solvedAt - a[1].solvedAt).forEach(([,iss]) => {
+        sf.appendChild(buildSolvedPost(iss));
+      });
+    }
+  }
+}
+
+function buildIssuePost(key, issue) {
+  const div = document.createElement('div');
+  div.className = 'issue-post';
+  const name = issue.author.charAt(0).toUpperCase() + issue.author.slice(1);
+  const color = MEMBER_COLORS[issue.author] || 'var(--purple)';
+  const time = new Date(issue.created).toLocaleDateString();
+  const comments = issue.comments || {};
+
+  let commentsHtml = '';
+  Object.entries(comments).forEach(([ck, c]) => {
+    const cn = c.author.charAt(0).toUpperCase() + c.author.slice(1);
+    const canMark = currentUser === issue.author;
+    commentsHtml += `
+      <div class="comment">
+        <div style="flex:1">
+          <div class="comment-author">${cn}</div>
+          <div class="comment-text">${escHtml(c.text)}</div>
+        </div>
+        <div class="comment-checks">
+          <label class="cb-tried"><input type="checkbox" ${c.tried?'checked':''} ${!canMark?'disabled':''} onchange="markComment('${key}','${ck}','tried',this.checked)"> Tried</label>
+          <label class="cb-solved"><input type="checkbox" ${c.solved?'checked':''} ${!canMark?'disabled':''} onchange="markComment('${key}','${ck}','solved',this.checked)"> Solved</label>
+        </div>
+      </div>`;
+  });
+
+  div.innerHTML = `
+    <div class="post-header">
+      <div class="post-avatar" style="background:${color}22;color:${color}">${name.charAt(0)}</div>
+      <div class="post-meta">
+        <div class="post-author" style="color:${color}">${name}</div>
+        <div class="post-section">&#128205; ${escHtml(issue.section)}</div>
+      </div>
+      <div class="post-time">${time}</div>
+    </div>
+    <div class="post-body">${escHtml(issue.body)}</div>
+    ${issue.tried ? `<div class="post-tried"><div class="post-tried-label">Tried so far:</div>${escHtml(issue.tried)}</div>` : ''}
+    <div class="comment-section">
+      ${commentsHtml}
+      ${currentUser !== issue.author ? `
+        <div class="add-comment">
+          <input id="cmt_${key}" placeholder="Suggest a solution..." onkeydown="if(event.key==='Enter')addComment('${key}')">
+          <button class="btn-sm" onclick="addComment('${key}')">Reply</button>
+        </div>` : '<div style="font-size:10px;color:var(--text3);padding-top:4px">Waiting for teammates to suggest solutions...</div>'}
+    </div>`;
+  return div;
+}
+
+function buildSolvedPost(issue) {
+  const div = document.createElement('div');
+  div.className = 'solved-post';
+  const name = issue.author.charAt(0).toUpperCase() + issue.author.slice(1);
+  const solution = Object.values(issue.comments || {}).find(c => c.solved);
+  div.innerHTML = `
+    <div class="solved-post-header">&#10003; Solved — ${escHtml(issue.section)}</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:4px">By ${name}: ${escHtml(issue.body).substring(0,80)}...</div>
+    ${solution ? `<div class="solved-solution">&#128161; ${escHtml(solution.text)} — by ${solution.author.charAt(0).toUpperCase()+solution.author.slice(1)}</div>` : ''}`;
+  return div;
+}
+
+function addComment(issueKey) {
+  const inp = document.getElementById('cmt_' + issueKey);
+  if (!inp || !inp.value.trim()) return;
+  dbPush(`issues/${issueKey}/comments`, {
+    author: currentUser,
+    text: inp.value.trim(),
+    tried: false,
+    solved: false,
+    created: Date.now()
+  });
+  inp.value = '';
+}
+
+function markComment(issueKey, commentKey, field, value) {
+  dbUpdate(`issues/${issueKey}/comments/${commentKey}`, { [field]: value });
+  if (field === 'solved' && value) {
+    // Mark issue as solved
+    setTimeout(() => {
+      dbUpdate(`issues/${issueKey}`, { solved: true, solvedAt: Date.now() });
+    }, 800);
+  }
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NOTES
+// ═══════════════════════════════════════════════════════════════════
+function renderNotes(notes) {
+  const entries = Object.entries(notes);
+  document.getElementById('notesCount').textContent = entries.length + ' notes';
+  const preview = entries[0] ? entries[0][1].text.substring(0,80) + '...' : 'Click to open your notes...';
+  document.getElementById('notesPreview').textContent = preview;
+
+  const list = document.getElementById('notesList');
+  if (!list) return;
+  list.innerHTML = '';
+  entries.forEach(([key, note]) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative';
+    div.innerHTML = `
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--purple2)">${escHtml(note.title||'Note')}</div>
+      <textarea style="width:100%;background:transparent;border:none;color:var(--text2);font-size:11px;resize:none;outline:none;min-height:80px;font-family:inherit;line-height:1.6" onblur="saveNote('${key}',this.parentElement)">${escHtml(note.text)}</textarea>
+      <button onclick="deleteNote('${key}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="Delete">&times;</button>`;
+    list.appendChild(div);
+  });
+
+  const addDiv = document.createElement('div');
+  addDiv.style.cssText = 'background:rgba(124,106,247,.05);border:1px dashed var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text3)';
+  addDiv.textContent = '+ Add note';
+  addDiv.onclick = addNote;
+  list.appendChild(addDiv);
+}
+
+function addNote() {
+  dbPush(`notes/${currentUser}`, { title: 'New Note', text: '', created: Date.now() });
+}
+function saveNote(key, div) {
+  const ta = div.querySelector('textarea');
+  if (ta) dbUpdate(`notes/${currentUser}/${key}`, { text: ta.value });
+}
+function deleteNote(key) {
+  if (confirm('Delete this note?')) dbRemove(`notes/${currentUser}/${key}`);
+}
+
+// Team notes
+const BIBLE_DEFAULT = `Implementation Bible v4.0 — robot_oda
+
+Section 0: Document Control & Meta
+Section 1: System Overview
+Section 2: Hardware Specification & Assembly
+Section 3: OS Setup (Jetson Nano)
+Section 4: Network Setup (Tailscale)
+Section 5: Docker Environment (Jetson)
+Section 6: ROS 2 Environment
+Section 7: Zenoh Configuration
+Section 8: File Structure
+Section 9: Node Implementation
+Section 10: Safety System
+Section 11: Arduino Firmware
+Section 12: Launch System
+Section 13: Testing & Verification
+Section 14: Performance & Optimization
+Section 15: Troubleshooting Guide
+Section 16: Deployment Modes
+
+Key URLs:
+- GitHub: https://github.com/your-repo
+- Firebase Console: https://console.firebase.google.com
+- Implementation Bible v4.0 stored here.
+
+Arduino Pin Map (corrected):
+- D2=PE4=INT4 (E-Stop), D6=PH3=OC4A (Left PWM)
+- D5=PE3=OC3A (Right PWM), D18=PD3=INT3 (Left Enc A)
+- D19=PD2=INT2 (Left Enc B), D23=PA1=PCINT1 (Right Enc A)
+
+Safety Zones: STOP<=0.35m, SLOW<=0.70m
+Zenoh version: 0.11.0 (pinned)
+Firebase: Realtime Database`;
+
+function initTeamNotes() {
+  dbOnce('teamNotes', val => {
+    if (!val || !Object.keys(val).length) {
+      dbPush('teamNotes', { title: 'Implementation Bible v4.0', text: BIBLE_DEFAULT, created: Date.now() });
+    }
+  });
+  dbOn('teamNotes', notes => {
+    renderTeamNotes(notes || {});
+  });
+}
+
+function renderTeamNotes(notes) {
+  const preview = Object.values(notes)[0];
+  const el = document.getElementById('teamNotesPreview');
+  if (el && preview) el.textContent = preview.text.substring(0,100) + '...';
+
+  const list = document.getElementById('teamNotesList');
+  if (!list) return;
+  list.innerHTML = '';
+  Object.entries(notes).forEach(([key, note]) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative';
+    div.innerHTML = `
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--cyan2)">${escHtml(note.title||'Team Note')}</div>
+      <textarea style="width:100%;background:transparent;border:none;color:var(--text2);font-size:11px;resize:none;outline:none;min-height:80px;font-family:inherit;line-height:1.6" onblur="saveTeamNote('${key}',this.parentElement)">${escHtml(note.text)}</textarea>`;
+    list.appendChild(div);
+  });
+  const addDiv = document.createElement('div');
+  addDiv.style.cssText = 'background:rgba(34,211,238,.05);border:1px dashed var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text3)';
+  addDiv.textContent = '+ Add team note';
+  addDiv.onclick = addTeamNote;
+  list.appendChild(addDiv);
+}
+function addTeamNote() {
+  dbPush('teamNotes', { title: 'Team Note', text: '', created: Date.now() });
+}
+function saveTeamNote(key, div) {
+  const ta = div.querySelector('textarea');
+  if (ta) dbUpdate(`teamNotes/${key}`, { text: ta.value });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════════════════
+function updateCharts(allTasks) {
+  const upcoming = Object.values(allTasks.upcoming || {});
+  const doneSession = Object.values(allTasks.doneSession || {});
+  const doneSub = Object.values(allTasks.doneSub || {});
+
+  // Chart 1: individual overall (done sessions vs total sessions)
+  const totalSessions = doneSession.length + upcoming.length || 1;
+  const pct1 = Math.round((doneSession.length / totalSessions) * 100);
+  setChart('chart1', pct1, `${doneSession.length} / ${totalSessions} sessions`, 'var(--purple)');
+
+  // Chart 2: current phase (done sub-tasks)
+  const totalSub = doneSub.length + Math.max(5, upcoming.length);
+  const pct2 = doneSub.length ? Math.round((doneSub.length / totalSub) * 100) : 0;
+  setChart('chart2', pct2, `${doneSub.length} sub-tasks done`, 'var(--cyan)');
+
+  // Chart 3: project scope (weight-adjusted)
+  const totalWeight = [...doneSession, ...upcoming].reduce((s,t)=>s+(t.weight||1),0) || 1;
+  const doneWeight = doneSession.reduce((s,t)=>s+(t.weight||1),0);
+  const pct3 = Math.round((doneWeight / totalWeight) * 100);
+  setChart('chart3', pct3, `${pct3}% of project scope`, 'var(--green)');
+
+  // Update member progress on team page
+  updateTeamMemberProgress(currentUser, pct1);
+}
+
+function setChart(id, pct, label, color) {
+  const circ = document.getElementById(id + 'Circle');
+  const pctEl = document.getElementById(id + 'Pct');
+  const lblEl = document.getElementById(id + 'Label');
+  if (!circ) return;
+  const offset = 213.6 - (213.6 * pct / 100);
+  circ.style.strokeDashoffset = offset;
+  if (pctEl) { pctEl.textContent = pct + '%'; pctEl.style.color = color; }
+  if (lblEl) lblEl.textContent = label;
+}
+
+function updateTeamMemberProgress(member, pct) {
+  const bar = document.getElementById('prog-' + member);
+  const lbl = document.getElementById('prog-' + member + '-lbl');
+  if (bar) bar.style.width = pct + '%';
+  if (lbl) lbl.textContent = pct + '%';
+  // Store in Firebase for cross-member visibility
+  dbSet(`memberProgress/${member}`, pct);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TEAM PAGE
+// ═══════════════════════════════════════════════════════════════════
+function loadTeamPage() {
+  initTeamNotes();
+
+  // Listen to member progress
+  ['sadnan','tazin','akib'].forEach(m => {
+    dbOn(`memberProgress/${m}`, pct => {
+      const p = pct || 0;
+      const bar = document.getElementById('prog-' + m);
+      const lbl = document.getElementById('prog-' + m + '-lbl');
+      if (bar) bar.style.width = p + '%';
+      if (lbl) lbl.textContent = p + '%';
+    });
+  });
+
+  // Overall team progress (average of all three)
+  dbOn('memberProgress', vals => {
+    const v = vals || {};
+    const avg = Math.round(((v.sadnan||0) + (v.tazin||0) + (v.akib||0)) / 3);
+    const circ = document.getElementById('teamChartCircle');
+    const pct = document.getElementById('teamChartPct');
+    const bar = document.getElementById('teamProgressBar');
+    if (circ) circ.style.strokeDashoffset = 213.6 - (213.6 * avg / 100);
+    if (pct) pct.textContent = avg + '%';
+    if (bar) bar.style.width = avg + '%';
+  });
+
+  // Team targets
+  dbOn('teamTargets/next', v => {
+    if (v) document.getElementById('teamNextTarget').textContent = v;
+  });
+  dbOn('teamTargets/final', v => {
+    if (v) document.getElementById('teamFinalTarget').textContent = '🏆 Final Target: ' + v;
+  });
+
+  // Team upcoming/done (aggregate all members' tasks)
+  loadTeamTasks();
+}
+
+function loadTeamTasks() {
+  dbOn('teamTasks/upcoming', tasks => {
+    const entries = Object.entries(tasks || {});
+    document.getElementById('teamUpcomingCount').textContent = entries.length;
+    renderTeamTaskList('teamUpcomingList', entries.slice(0,5));
+    renderTeamTaskList('teamUpcomingListFull', entries);
+  });
+  dbOn('teamTasks/done', tasks => {
+    const entries = Object.entries(tasks || {});
+    document.getElementById('teamDoneCount').textContent = entries.length;
+    renderTeamTaskList('teamDoneList', entries.slice(0,4));
+    renderTeamTaskList('teamDoneListFull', entries);
+  });
+}
+
+function renderTeamTaskList(elId, entries) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = '';
+  if (!entries.length) { el.innerHTML = '<li style="font-size:11px;color:var(--text3);padding:8px">No tasks yet</li>'; return; }
+  entries.forEach(([, task]) => {
+    const li = document.createElement('li');
+    li.className = 'task-item';
+    const m = task.member || 'team';
+    const color = MEMBER_COLORS[m] || 'var(--text3)';
+    li.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0;margin-top:4px"></span><span>${task.text}</span><span class="weight-badge">w${task.weight||1}</span>`;
+    el.appendChild(li);
+  });
+}
+
+function updateTeamDone() {
+  // Called when a user completes a session task — add to team done
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LEADER CONTROL
+// ═══════════════════════════════════════════════════════════════════
+function loadLeaderPage() {
+  // Load comparison chart
+  dbOn('memberProgress', vals => {
+    const v = vals || {};
+    const members = ['sadnan','tazin','akib'];
+    const max = Math.max(...members.map(m => v[m]||0), 1);
+    members.forEach(m => {
+      const pct = v[m] || 0;
+      const bar = document.getElementById('cmp' + m.charAt(0).toUpperCase() + m.slice(1));
+      const label = document.getElementById('cmp' + m.charAt(0).toUpperCase() + m.slice(1) + 'Pct');
+      if (bar) bar.style.width = (pct / max * 100) + '%';
+      if (label) label.textContent = pct + '%';
+    });
+  });
+
+  // Prefill targets
+  dbOnce('teamTargets/next', v => { if(v) document.getElementById('inputNextTarget').value = v; });
+  dbOnce('teamTargets/final', v => { if(v) document.getElementById('inputFinalTarget').value = v; });
+}
+
+function saveTeamDirection() {
+  const next = document.getElementById('inputNextTarget').value.trim();
+  const final = document.getElementById('inputFinalTarget').value.trim();
+  if (next) dbSet('teamTargets/next', next);
+  if (final) dbSet('teamTargets/final', final);
+  closeModal('modalTeamDirection');
+}
+
+function saveMemberDirection() {
+  const member = document.getElementById('dirMember').value;
+  const goal = document.getElementById('dirGoal').value.trim();
+  if (!goal) return;
+  dbSet(`goals/${member}`, goal);
+  closeModal('modalMemberDirection');
+}
+
+function leaderAddTask() {
+  const member = document.getElementById('taskMember').value;
+  const type = document.getElementById('taskType').value;
+  const text = document.getElementById('taskDesc').value.trim();
+  const weight = parseInt(document.getElementById('taskWeight').value);
+  if (!text) return;
+
+  const task = { text, weight, member, created: Date.now(), done: false };
+
+  if (member === 'team') {
+    dbPush('teamTasks/upcoming', task);
+  } else {
+    const path = type === 'upcoming' ? `tasks/${member}/upcoming` : `tasks/${member}/doneSub`;
+    dbPush(path, task);
+    // Also add to team upcoming for visibility
+    dbPush('teamTasks/upcoming', task);
+  }
+  document.getElementById('taskDesc').value = '';
+  closeModal('modalAddTasks');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEED INITIAL TASKS (called once if no data)
+// ═══════════════════════════════════════════════════════════════════
+function seedInitialData() {
+  dbOnce('initialized', val => {
+    if (val) return; // Already seeded
+
+    const SADNAN_TASKS = [
+      { text:'Source all BOM components and verify', weight:2 },
+      { text:'Wire motors, IBT-2 drivers, encoders, IMU', weight:3 },
+      { text:'Measure wheel radius and separation physically', weight:1 },
+      { text:'Install udev rules on Jetson host (CH340, Kinect, LiDAR)', weight:1 },
+      { text:'Flash Jetson SD card — Ubuntu 20.04 Qengineering image', weight:2 },
+      { text:'Run Jetson base config: hostname, SSH, locale', weight:1 },
+      { text:'System optimization: ZRAM, swap, jetson_clocks', weight:2 },
+      { text:'Install Docker CE on Jetson', weight:1 },
+      { text:'Build Jetson Docker image (docker compose build)', weight:3 },
+      { text:'Flash Arduino firmware and run bench tests', weight:3 },
+      { text:'Sensor integration: all 5 nodes running inside container', weight:3 },
+      { text:'Zenoh bridge validation with laptop', weight:2 },
+      { text:'Final integration: merge all three tracks', weight:3 },
+    ];
+    const TAZIN_TASKS = [
+      { text:'Install ROS 2 Humble on laptop (Ubuntu 22.04)', weight:2 },
+      { text:'Create laptop directory structure ~/robot_oda_laptop/', weight:1 },
+      { text:'Write zenoh_router Dockerfile (pinned to 0.11.0)', weight:2 },
+      { text:'Write nav2_slam Dockerfile and entrypoint.sh', weight:2 },
+      { text:'Write rviz2 Dockerfile', weight:1 },
+      { text:'Write docker-compose.yml for all laptop containers', weight:2 },
+      { text:'Build and test all laptop containers', weight:2 },
+      { text:'Write nav2_params.yaml (add qos best_effort for scan)', weight:3 },
+      { text:'Write ekf_params.yaml and slam_params.yaml', weight:2 },
+      { text:'Write laptop_bringup.launch.py', weight:2 },
+      { text:'Test Nav2 against Turtlebot3 simulation', weight:3 },
+      { text:'Configure robot_oda.rviz with all displays', weight:2 },
+      { text:'Zenoh bridge test session with Member A', weight:2 },
+    ];
+    const AKIB_TASKS = [
+      { text:'Get Tailscale IPs from Sadnan', weight:1 },
+      { text:'Write jetson_zenoh_config.json5 (client, 300ms gossip)', weight:2 },
+      { text:'Write laptop_zenoh_router_config.json5 (router, 500ms)', weight:2 },
+      { text:'Write rmw_zenoh_config.json5 (client, 300ms)', weight:2 },
+      { text:'Write config.h (all pin assignments, fault bits, constants)', weight:3 },
+      { text:'Write encoders.cpp (INT3/INT2 for left, PCINT0 for right)', weight:3 },
+      { text:'Compile check: arduino-cli compile --fqbn arduino:avr:mega', weight:1 },
+      { text:'Write motors.cpp (MOTOR_PWM_TOP unified, Timer3+Timer4)', weight:3 },
+      { text:'Write robot_oda_firmware.ino (INT4_vect, EICRB, WDTO_8S)', weight:3 },
+      { text:'Write safety_node.py (STOP=0.35m, SLOW=0.70m, turn logic)', weight:3 },
+      { text:'Write serial_node.py (/odom RELIABLE, heartbeat forwarding)', weight:3 },
+      { text:'Write protocol.h/cpp (crc8, ntoh_float, packet builders)', weight:2 },
+      { text:'Write tx_queue.h/cpp (4-slot circular queue, non-blocking)', weight:2 },
+      { text:'Final compile check — zero errors required', weight:1 },
+    ];
+
+    SADNAN_TASKS.forEach(t => dbPush('tasks/sadnan/upcoming', { ...t, done:false, created:Date.now() }));
+    TAZIN_TASKS.forEach(t => dbPush('tasks/tazin/upcoming', { ...t, done:false, created:Date.now() }));
+    AKIB_TASKS.forEach(t => dbPush('tasks/akib/upcoming', { ...t, done:false, created:Date.now() }));
+
+    // Team tasks
+    const TEAM_TASKS = [
+      { text:'Phase 5: Zenoh bridge full validation', weight:2, member:'team' },
+      { text:'Phase 6: Safety system test suite', weight:3, member:'team' },
+      { text:'Phase 7: SLAM mapping run', weight:2, member:'team' },
+      { text:'Phase 8: Autonomous navigation test', weight:3, member:'team' },
+    ];
+    TEAM_TASKS.forEach(t => dbPush('teamTasks/upcoming', { ...t, done:false, created:Date.now() }));
+
+    dbSet('initialized', true);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════════
+window.onload = () => {
+  buildGrid();
+  initFirebase();
+  seedInitialData();
+  document.querySelectorAll('.pin-digit').forEach(d => {
+    d.addEventListener('keydown', e => { if (e.key === 'Enter') checkPin(); });
+  });
+};
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     T2 AI COORDINATOR — STYLES
+════════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Floating bubble ─────────────────────────────────────────────── */
+#t2Bubble {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c6af7, #22d3ee);
+  border: none;
+  cursor: pointer;
+  z-index: 900;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 0 rgba(124,106,247,.5);
+  animation: t2pulse 2.5s ease infinite;
+  transition: transform .2s;
+}
+#t2Bubble:hover { transform: scale(1.08); }
+#t2Bubble svg { width: 26px; height: 26px; fill: #fff; }
+@keyframes t2pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(124,106,247,.5); }
+  70%  { box-shadow: 0 0 0 12px rgba(124,106,247,0); }
+  100% { box-shadow: 0 0 0 0 rgba(124,106,247,0); }
+}
+#t2Badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  background: #ef4444;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  display: none;
+}
+
+/* ── Floating panel ──────────────────────────────────────────────── */
+#t2Panel {
+  position: fixed;
+  bottom: 90px;
+  right: 28px;
+  width: 400px;
+  max-height: 600px;
+  background: #0f1525;
+  border: 1px solid #2a3a5c;
+  border-radius: 18px;
+  display: none;
+  flex-direction: column;
+  z-index: 901;
+  box-shadow: 0 24px 60px rgba(0,0,0,.6);
+  animation: t2slideIn .25s ease;
+  overflow: hidden;
+}
+#t2Panel.open { display: flex; }
+@keyframes t2slideIn {
+  from { opacity: 0; transform: translateY(16px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Panel header ────────────────────────────────────────────────── */
+.t2-header {
+  padding: 14px 16px 10px;
+  background: linear-gradient(135deg, rgba(124,106,247,.15), rgba(34,211,238,.08));
+  border-bottom: 1px solid #2a3a5c;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.t2-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c6af7, #22d3ee);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  position: relative;
+}
+.t2-online {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  background: #10b981;
+  border-radius: 50%;
+  border: 2px solid #0f1525;
+}
+.t2-name { font-size: 13px; font-weight: 700; color: #e2e8f0; }
+.t2-role { font-size: 10px; color: #64748b; letter-spacing: .5px; }
+.t2-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: color .15s;
+}
+.t2-close:hover { color: #e2e8f0; }
+
+/* ── Mode tabs ───────────────────────────────────────────────────── */
+.t2-modes {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #1a2240;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.t2-mode {
+  background: none;
+  border: 1px solid #2a3a5c;
+  border-radius: 20px;
+  color: #64748b;
+  font-size: 10px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+  letter-spacing: .3px;
+}
+.t2-mode:hover { border-color: #7c6af7; color: #9d8fff; }
+.t2-mode.active { background: rgba(124,106,247,.15); border-color: #7c6af7; color: #9d8fff; }
+
+/* ── Chat area ───────────────────────────────────────────────────── */
+.t2-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.t2-msg {
+  display: flex;
+  gap: 8px;
+  animation: fadeIn .2s ease;
+}
+.t2-msg.user { flex-direction: row-reverse; }
+.t2-msg-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1a2240;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+.t2-msg-bubble {
+  max-width: 78%;
+  padding: 9px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.t2-msg.ai .t2-msg-bubble {
+  background: #1a2240;
+  border: 1px solid #2a3a5c;
+  color: #cbd5e1;
+  border-bottom-left-radius: 4px;
+}
+.t2-msg.user .t2-msg-bubble {
+  background: rgba(124,106,247,.2);
+  border: 1px solid rgba(124,106,247,.35);
+  color: #e2e8f0;
+  border-bottom-right-radius: 4px;
+}
+.t2-msg-time {
+  font-size: 9px;
+  color: #334466;
+  margin-top: 3px;
+  text-align: right;
+}
+.t2-thinking {
+  display: flex;
+  gap: 4px;
+  padding: 10px 14px;
+  background: #1a2240;
+  border: 1px solid #2a3a5c;
+  border-radius: 14px;
+  border-bottom-left-radius: 4px;
+  width: fit-content;
+}
+.t2-thinking span {
+  width: 6px; height: 6px;
+  background: #7c6af7;
+  border-radius: 50%;
+  animation: t2think .9s ease infinite;
+}
+.t2-thinking span:nth-child(2) { animation-delay: .15s; }
+.t2-thinking span:nth-child(3) { animation-delay: .3s; }
+@keyframes t2think {
+  0%,60%,100% { transform: translateY(0); opacity:.5; }
+  30% { transform: translateY(-5px); opacity:1; }
+}
+
+/* ── Insight cards ───────────────────────────────────────────────── */
+.t2-insight {
+  background: rgba(34,211,238,.05);
+  border: 1px solid rgba(34,211,238,.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+.t2-insight-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #22d3ee;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.t2-tag {
+  display: inline-block;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin: 1px 2px;
+  font-weight: 600;
+}
+.t2-tag.blocked  { background: rgba(239,68,68,.15); color: #f87171; }
+.t2-tag.done     { background: rgba(16,185,129,.15); color: #34d399; }
+.t2-tag.next     { background: rgba(245,158,11,.15); color: #fbbf24; }
+.t2-tag.info     { background: rgba(124,106,247,.15); color: #9d8fff; }
+.t2-tag.critical { background: rgba(239,68,68,.25); color: #ef4444; border: 1px solid rgba(239,68,68,.4); }
+
+/* ── Quick suggestions ───────────────────────────────────────────── */
+.t2-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 6px 12px;
+  border-top: 1px solid #1a2240;
+  flex-shrink: 0;
+}
+.t2-suggest {
+  background: rgba(124,106,247,.08);
+  border: 1px solid rgba(124,106,247,.2);
+  border-radius: 12px;
+  color: #7c6af7;
+  font-size: 10px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.t2-suggest:hover {
+  background: rgba(124,106,247,.18);
+  border-color: #7c6af7;
+}
+
+/* ── Input row ───────────────────────────────────────────────────── */
+.t2-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid #1a2240;
+  flex-shrink: 0;
+}
+.t2-input {
+  flex: 1;
+  background: #141c30;
+  border: 1px solid #2a3a5c;
+  border-radius: 10px;
+  color: #e2e8f0;
+  font-size: 12px;
+  padding: 8px 12px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .2s;
+  resize: none;
+  min-height: 36px;
+  max-height: 100px;
+}
+.t2-input:focus { border-color: #7c6af7; }
+.t2-send {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #7c6af7, #22d3ee);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity .2s;
+}
+.t2-send:hover { opacity: .85; }
+.t2-send svg { width: 16px; height: 16px; fill: #fff; }
+.t2-send:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Context bar ─────────────────────────────────────────────────── */
+.t2-context-bar {
+  padding: 5px 12px;
+  background: rgba(16,185,129,.04);
+  border-bottom: 1px solid rgba(16,185,129,.1);
+  font-size: 9px;
+  color: #334466;
+  letter-spacing: .5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.t2-ctx-dot {
+  width: 5px; height: 5px;
+  background: #10b981;
+  border-radius: 50%;
+  animation: pulse 1.5s ease infinite;
+}
+
+/* ── API Key setup ───────────────────────────────────────────────── */
+.t2-setup {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.t2-setup-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.t2-setup-desc {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.6;
+}
+.t2-key-input {
+  width: 100%;
+  background: #141c30;
+  border: 1px solid #2a3a5c;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 12px;
+  padding: 8px 12px;
+  outline: none;
+  font-family: monospace;
+}
+.t2-key-input:focus { border-color: #7c6af7; }
+.t2-save-key {
+  background: linear-gradient(135deg, #7c6af7, #22d3ee);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+.t2-save-key:hover { opacity: .85; }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     T2 HTML — Floating bubble + panel
+════════════════════════════════════════════════════════════════════ -->
+
+<!-- Floating bubble -->
+<button id="t2Bubble" onclick="t2Toggle()" title="T2 AI Coordinator">
+  <div id="t2Badge"></div>
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.52 3.66 1.424 5.18L2 22l4.82-1.424A9.953 9.953 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 2a8 8 0 110 16A8 8 0 0112 4zm-1 5v2H9v2h2v4h2v-4h2v-2h-2V9h-2z"/>
+  </svg>
+</button>
+
+<!-- Floating panel -->
+<div id="t2Panel">
+
+  <!-- Header -->
+  <div class="t2-header">
+    <div class="t2-avatar">
+      &#129302;
+      <div class="t2-online"></div>
+    </div>
+    <div>
+      <div class="t2-name">T2</div>
+      <div class="t2-role">AI PROJECT COORDINATOR &nbsp;&#x2022;&nbsp; robot_oda</div>
+    </div>
+    <button class="t2-close" onclick="t2Toggle()">&#x2715;</button>
+  </div>
+
+  <!-- Context bar -->
+  <div class="t2-context-bar" id="t2ContextBar">
+    <div class="t2-ctx-dot"></div>
+    <span id="t2ContextLabel">Loading project context...</span>
+  </div>
+
+  <!-- Mode tabs -->
+  <div class="t2-modes">
+    <button class="t2-mode active" onclick="t2SetMode('chat',this)">&#128172; Chat</button>
+    <button class="t2-mode" onclick="t2SetMode('status',this)">&#128202; Status</button>
+    <button class="t2-mode" onclick="t2SetMode('handoff',this)">&#128257; Handoffs</button>
+    <button class="t2-mode" onclick="t2SetMode('blocker',this)">&#128165; Blockers</button>
+    <button class="t2-mode" onclick="t2SetMode('next',this)">&#9654; What's Next</button>
+    <button class="t2-mode" onclick="t2SetMode('leader',this)">&#128081; Leader View</button>
+  </div>
+
+  <!-- API Key setup (shown when no key stored) -->
+  <div class="t2-setup" id="t2Setup" style="display:none">
+    <div class="t2-setup-title">&#128273; Connect Anthropic API</div>
+    <div class="t2-setup-desc">
+      To activate T2, enter your Anthropic API key.<br>
+      Get one at <strong style="color:#7c6af7">console.anthropic.com</strong><br>
+      Your key is stored only in this browser's localStorage.
+    </div>
+    <input class="t2-key-input" id="t2KeyInput" type="password" placeholder="sk-ant-api03-...">
+    <button class="t2-save-key" onclick="t2SaveKey()">Activate T2 &#9654;</button>
+  </div>
+
+  <!-- Messages -->
+  <div class="t2-messages" id="t2Messages"></div>
+
+  <!-- Quick suggestions -->
+  <div class="t2-suggestions" id="t2Suggestions">
+    <button class="t2-suggest" onclick="t2Ask('Who is doing what right now?')">Who is doing what?</button>
+    <button class="t2-suggest" onclick="t2Ask('What is blocked?')">What is blocked?</button>
+    <button class="t2-suggest" onclick="t2Ask('What should I work on next?')">What\'s next for me?</button>
+    <button class="t2-suggest" onclick="t2Ask('Is the team on track?')">On track?</button>
+  </div>
+
+  <!-- Input row -->
+  <div class="t2-input-row">
+    <textarea class="t2-input" id="t2Input" placeholder="Ask T2 anything about the project..."
+      rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();t2Send();}"
+      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+    <button class="t2-send" id="t2SendBtn" onclick="t2Send()">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     T2 JAVASCRIPT
+════════════════════════════════════════════════════════════════════ -->
+<script>
+// ── T2 state ──────────────────────────────────────────────────────
+const T2 = {
+  open: false,
+  mode: 'chat',
+  history: [],          // {role, content}[]
+  apiKey: null,
+  projectContext: null, // snapshot of Firebase data
+  unread: 0,
+  thinking: false
+};
+
+// ── Implementation Bible summary (injected into every system prompt)
+const BIBLE_SUMMARY = `
+PROJECT: robot_oda — Autonomous Indoor Mobile Robot
+VERSION: Implementation Bible v4.0 | 18-Mar-2026
+
+ARCHITECTURE:
+  Layer 1 (Hardware): DK-37R motors (IBT-2/BTS7960), RPLiDAR A1M8-R6, Kinect 1414, MPU6050
+  Layer 2 (Embedded): Arduino Mega 2560 ADK — real-time control, encoders, safety watchdog
+  Layer 3 (Comms): Binary serial protocol 115200 baud, CRC-8, big-endian, 30Hz TX
+  Layer 4 (Edge): Jetson Nano Ubuntu 20.04, single Docker container, ROS 2 Humble
+  Layer 5 (Compute): Laptop Ubuntu 22.04, multiple Docker containers, Nav2+SLAM
+
+TEAM TRACKS:
+  Sadnan (Track A — Leader): Hardware + Embedded + Final Integration
+    Phases: 0→1→3→4→5→8. Has physical hardware. Critical path owner.
+    Key tasks: Wiring, Jetson OS, Docker build, Arduino flash, sensor integration, final merge.
+  Tazin (Track B): ROS 2 + Nav2 + Laptop Docker Stack
+    Phases: 4→6→7 (laptop side). No hardware needed. Works on own laptop.
+    Key tasks: Laptop containers, nav2_params.yaml, EKF config, SLAM test with Turtlebot3 sim.
+  Akib (Track C): Arduino Firmware + Safety Node + Network Configs
+    Phases: 2→3 (software only). No hardware needed. Lightest compute requirement.
+    Key tasks: Zenoh config files, config.h, encoders.cpp (INT3/INT2/PCINT0), safety_node.py.
+
+CRITICAL DEPENDENCIES (handoffs):
+  Akib → Sadnan: Zenoh configs (.json5), config.h, encoders.cpp, motors.cpp, firmware.ino,
+                  safety_node.py, serial_node.py — ALL must pass arduino-cli compile with 0 errors
+  Tazin → Sadnan: nav2_params.yaml, ekf_params.yaml, slam_params.yaml,
+                   laptop_bringup.launch.py, all Dockerfiles building clean
+  Sadnan needs BOTH before final integration session.
+
+KEY CONSTANTS:
+  TICKS_PER_REV=825 (11 CPR × 4x quad × 18.75:1), MOTOR_PWM_TOP=99 (20kHz)
+  STOP=0.35m, SLOW=0.70m, HB_TIMEOUT=500ms, HW_WDT=8s
+  Zenoh 0.11.0 PINNED (mismatch = silent topic failure)
+  /odom + /imu/data: RELIABLE QoS (matches EKF default subscriber)
+  /scan + /kinect/scan: BEST_EFFORT QoS (must set qos_policy_reliability in nav2_params)
+
+CRITICAL AUDIT FIXES ALREADY APPLIED:
+  ISR vectors: INT3_vect/INT2_vect for encoders, INT4_vect (EICRB) for E-stop
+  PCINT: PCIE0/PCMSK0 for D23/D24 (NOT PCIE2 — that was the bug)
+  E-stop: clears OCR4A+OCR3A and PG5+PH5 (not wrong pins)
+  HW WDT: WDTO_8S (not 1S — prevents spurious resets on Jetson restart)
+  QoS: /odom publisher is RELIABLE (fixed mismatch with EKF)
+
+NETWORK:
+  Tailscale VPN: device-to-device, direct UDP 41641
+  Zenoh router on Laptop (starts FIRST always), client on Jetson container
+  Gossip: client=300ms (fast reconnect), router=500ms (stable)
+  GitHub repo: private. Firebase Realtime Database for dashboard sync.
+
+PHASES (8 total):
+  P0 Hardware prep → P1 Jetson OS → P2 Network → P3 Arduino firmware
+  P4 Docker container → P5 Unit tests → P6 Zenoh bridge → P7 Safety+Nav → P8 Integration
+`;
+
+// ── Boot T2 ───────────────────────────────────────────────────────
+function t2Boot() {
+  T2.apiKey = localStorage.getItem('t2_api_key');
+  const setup = document.getElementById('t2Setup');
+  const msgs  = document.getElementById('t2Messages');
+  if (!T2.apiKey) {
+    setup.style.display = 'flex';
+    setup.style.flexDirection = 'column';
+    msgs.style.display = 'none';
+  } else {
+    setup.style.display = 'none';
+    msgs.style.display = 'flex';
+    t2WelcomeMessage();
+  }
+}
+
+function t2SaveKey() {
+  const key = document.getElementById('t2KeyInput').value.trim();
+  if (!key.startsWith('sk-ant')) {
+    alert('Invalid key format. Anthropic keys start with sk-ant-...');
+    return;
+  }
+  localStorage.setItem('t2_api_key', key);
+  T2.apiKey = key;
+  document.getElementById('t2Setup').style.display = 'none';
+  document.getElementById('t2Messages').style.display = 'flex';
+  t2WelcomeMessage();
+}
+
+function t2WelcomeMessage() {
+  if (T2.history.length > 0) return;
+  t2AddMessage('ai', `Hello${currentUser ? ', ' + currentUser.charAt(0).toUpperCase() + currentUser.slice(1) : ''}! I'm **T2**, your AI coordinator for robot_oda.\n\nI have full context of the Implementation Bible and your live project data. I can help you:\n\n• Track who is doing what and what's blocked\n• Manage B→A and C→A handoffs on the critical path\n• Detect bottlenecks and interpret progress\n• Surface engineering decisions, errors, and lessons\n• Support Sadnan with workload balance and priorities\n\nWhat do you need right now?`);
+}
+
+// ── Toggle panel ─────────────────────────────────────────────────
+function t2Toggle() {
+  T2.open = !T2.open;
+  const panel = document.getElementById('t2Panel');
+  panel.classList.toggle('open', T2.open);
+  if (T2.open) {
+    t2Boot();
+    t2LoadContext();
+    T2.unread = 0;
+    document.getElementById('t2Badge').style.display = 'none';
+    setTimeout(() => document.getElementById('t2Input').focus(), 200);
+  }
+}
+
+// ── Show bubble after login ───────────────────────────────────────
+const _origLogin = loginUser;
+loginUser = function(member) {
+  _origLogin(member);
+  document.getElementById('t2Bubble').style.display = 'flex';
+};
+const _origLogout = logout;
+logout = function() {
+  _origLogout();
+  document.getElementById('t2Bubble').style.display = 'none';
+  document.getElementById('t2Panel').classList.remove('open');
+  T2.open = false; T2.history = [];
+};
+
+// ── Load live context from Firebase ──────────────────────────────
+function t2LoadContext() {
+  if (!fbReady && !db) return;
+  const ctx = {};
+  let pending = 5;
+  const done = () => {
+    pending--;
+    if (pending <= 0) {
+      T2.projectContext = ctx;
+      t2UpdateContextBar(ctx);
+    }
+  };
+  dbOnce('tasks', v => { ctx.tasks = v || {}; done(); });
+  dbOnce('memberProgress', v => { ctx.progress = v || {}; done(); });
+  dbOnce('issues', v => { ctx.issues = v || {}; done(); });
+  dbOnce('status', v => { ctx.status = v || {}; done(); });
+  dbOnce('teamTargets', v => { ctx.targets = v || {}; done(); });
+}
+
+function t2UpdateContextBar(ctx) {
+  const openIssues = Object.values(ctx.issues || {}).filter(i => !i.solved).length;
+  const prog = ctx.progress || {};
+  const label = `Live data synced · ${openIssues} open issue${openIssues!==1?'s':''} · S:${prog.sadnan||0}% T:${prog.tazin||0}% A:${prog.akib||0}%`;
+  document.getElementById('t2ContextLabel').textContent = label;
+}
+
+// ── Build system prompt with live context ─────────────────────────
+function t2BuildSystemPrompt() {
+  const u = currentUser || 'unknown';
+  const ctx = T2.projectContext || {};
+  const prog = ctx.progress || {};
+  const status = ctx.status || {};
+  const issues = ctx.issues || {};
+  const tasks = ctx.tasks || {};
+
+  // Summarise open issues
+  const openIssues = Object.values(issues).filter(i => !i.solved);
+  const issuesSummary = openIssues.map(i =>
+    `  - [${i.author}] Section:${i.section} — ${i.body?.substring(0,80)} | Tried:${i.tried?.substring(0,40)||'nothing logged'}`
+  ).join('\n') || '  (none)';
+
+  // Summarise upcoming tasks per member
+  const memberTaskSummary = ['sadnan','tazin','akib'].map(m => {
+    const up = Object.values(tasks[m]?.upcoming || {}).filter(t => !t.done);
+    const done = Object.values(tasks[m]?.doneSession || {});
+    return `  ${m}: ${done.length} sessions done, ${up.length} upcoming | progress: ${prog[m]||0}%`;
+  }).join('\n');
+
+  // Current status
+  const statusSummary = ['sadnan','tazin','akib'].map(m =>
+    `  ${m}: ${status[m] || 'unknown'}`
+  ).join('\n');
+
+  return `You are T2, the AI Project Coordinator for Team Supersonic's robot_oda project.
+You are embedded in the team's private project management dashboard.
+The user currently logged in is: ${u} (${u==='sadnan'?'Team Leader, Track A':'Track '+(u==='tazin'?'B':'C')}).
+
+${BIBLE_SUMMARY}
+
+LIVE PROJECT DATA (as of now):
+Member progress:
+${memberTaskSummary}
+
+Current status:
+${statusSummary}
+
+Open issues/blockers (${openIssues.length}):
+${issuesSummary}
+
+Team next target: ${ctx.targets?.next || 'not set'}
+Team final target: ${ctx.targets?.final || 'not set'}
+
+YOUR BEHAVIOUR RULES:
+1. Always be specific — reference exact section numbers, member names, task names, phase numbers from the Implementation Bible.
+2. Never give generic advice — your answers must reflect THIS team's actual situation.
+3. When detecting blockers, name them explicitly: "Akib's PCINT group is the critical firmware risk."
+4. When managing handoffs, be precise: "Akib must deliver [file] to Sadnan before Phase 3 Session 3."
+5. For leader mode, think strategically: workload balance, critical path risk, bottleneck detection.
+6. Format responses cleanly. Use short paragraphs. Bold key names and section refs. Max ~200 words unless asked for detail.
+7. You can store engineering knowledge suggestions — remind the user to log solutions in Notes or Issues.
+8. Personality: focused, direct, technically fluent, slightly robotic but warm. You care about this robot getting built.`;
+}
+
+// ── Mode quick triggers ───────────────────────────────────────────
+function t2SetMode(mode, btn) {
+  T2.mode = mode;
+  document.querySelectorAll('.t2-mode').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  t2LoadContext();
+
+  const prompts = {
+    status:  'Give me a full status report: who is working on what, current progress percentages, and current statuses for all three members.',
+    handoff: 'Analyze the critical handoffs. What has Akib delivered to Sadnan? What has Tazin delivered? What is still pending and what is blocking Sadnan\'s integration?',
+    blocker: 'List all current blockers and open issues. For each one, tell me who owns it, which section it\'s in, and your recommended next step to unblock it.',
+    next:    `I am ${currentUser}. Based on my current progress and the project state, what should I work on next? Give me a specific, prioritized action list.`,
+    leader:  'Sadnan needs a leader briefing. Summarize: team progress, workload balance, bottleneck risks, which member needs attention, and the top 3 priorities for this week.'
+  };
+  if (prompts[mode]) {
+    t2Ask(prompts[mode]);
+  }
+}
+
+// ── Send message ──────────────────────────────────────────────────
+function t2Send() {
+  const inp = document.getElementById('t2Input');
+  const text = inp.value.trim();
+  if (!text || T2.thinking) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+  t2Ask(text);
+}
+
+async function t2Ask(text) {
+  if (!T2.apiKey) { t2Boot(); return; }
+  if (T2.thinking) return;
+
+  // Refresh context before each call
+  t2LoadContext();
+  await new Promise(r => setTimeout(r, 300));
+
+  t2AddMessage('user', text);
+  T2.history.push({ role: 'user', content: text });
+  t2ShowThinking();
+  T2.thinking = true;
+  document.getElementById('t2SendBtn').disabled = true;
+
+  try {
+    const sysPrompt = t2BuildSystemPrompt();
+    const messages = T2.history.slice(-12); // Last 12 turns for context window
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': T2.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: sysPrompt,
+        messages: messages
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reply = data.content?.[0]?.text || 'No response received.';
+
+    t2HideThinking();
+    t2AddMessage('ai', reply);
+    T2.history.push({ role: 'assistant', content: reply });
+
+    // If panel closed, show unread badge
+    if (!T2.open) {
+      T2.unread++;
+      const badge = document.getElementById('t2Badge');
+      badge.textContent = T2.unread;
+      badge.style.display = 'flex';
+    }
+
+    // Auto-detect and surface blockers as insight cards
+    if (reply.toLowerCase().includes('block') || reply.toLowerCase().includes('critical')) {
+      t2UpdateContextBar(T2.projectContext || {});
+    }
+
+  } catch(e) {
+    t2HideThinking();
+    let errMsg = `Connection error: ${e.message}`;
+    if (e.message.includes('401')) errMsg = 'Invalid API key. Please update your key in T2 settings.';
+    if (e.message.includes('429')) errMsg = 'Rate limit reached. Please wait a moment and try again.';
+    if (e.message.includes('CORS') || e.message.includes('fetch')) {
+      errMsg = 'CORS error: Your browser is blocking the API call. Make sure this page is served from GitHub Pages (not file://) and the API key is correct.';
+    }
+    t2AddMessage('ai', `⚠️ ${errMsg}`);
+  }
+
+  T2.thinking = false;
+  document.getElementById('t2SendBtn').disabled = false;
+}
+
+// ── Message rendering ─────────────────────────────────────────────
+function t2AddMessage(role, text) {
+  const msgs = document.getElementById('t2Messages');
+  const div = document.createElement('div');
+  div.className = 't2-msg ' + role;
+
+  const avatarDiv = document.createElement('div');
+  avatarDiv.className = 't2-msg-avatar';
+  if (role === 'ai') {
+    avatarDiv.innerHTML = '&#129302;';
+    avatarDiv.style.background = 'linear-gradient(135deg,rgba(124,106,247,.2),rgba(34,211,238,.1))';
+  } else {
+    const u = currentUser || 'U';
+    avatarDiv.textContent = u.charAt(0).toUpperCase();
+    avatarDiv.style.background = MEMBER_COLORS[currentUser] || 'var(--purple)';
+    avatarDiv.style.color = '#fff';
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 't2-msg-bubble';
+  bubble.innerHTML = t2FormatText(text);
+
+  const wrap = document.createElement('div');
+  wrap.style.maxWidth = '78%';
+  wrap.appendChild(bubble);
+
+  const time = document.createElement('div');
+  time.className = 't2-msg-time';
+  time.textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  wrap.appendChild(time);
+
+  if (role === 'ai') { div.appendChild(avatarDiv); div.appendChild(wrap); }
+  else { div.appendChild(wrap); div.appendChild(avatarDiv); }
+
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function t2FormatText(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code style="background:#141c30;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:11px">$1</code>')
+    .replace(/\n\n/g, '</p><p style="margin-top:8px">')
+    .replace(/\n/g, '<br>')
+    .replace(/^/, '<p>')
+    .replace(/$/, '</p>')
+    // Highlight member names
+    .replace(/\bSadnan\b/g, '<span class="t2-tag info">Sadnan</span>')
+    .replace(/\bTazin\b/g,  '<span class="t2-tag info">Tazin</span>')
+    .replace(/\bAkib\b/g,   '<span class="t2-tag info">Akib</span>')
+    // Highlight keywords
+    .replace(/\bBLOCKED\b/gi, '<span class="t2-tag blocked">BLOCKED</span>')
+    .replace(/\bCRITICAL\b/gi, '<span class="t2-tag critical">CRITICAL</span>')
+    .replace(/\bDONE\b/gi, '<span class="t2-tag done">DONE</span>')
+    .replace(/\bNEXT\b/gi, '<span class="t2-tag next">NEXT</span>');
+}
+
+function t2ShowThinking() {
+  const msgs = document.getElementById('t2Messages');
+  const div = document.createElement('div');
+  div.className = 't2-msg ai';
+  div.id = 't2ThinkingBubble';
+  const av = document.createElement('div');
+  av.className = 't2-msg-avatar';
+  av.innerHTML = '&#129302;';
+  av.style.background = 'linear-gradient(135deg,rgba(124,106,247,.2),rgba(34,211,238,.1))';
+  const thinking = document.createElement('div');
+  thinking.className = 't2-thinking';
+  thinking.innerHTML = '<span></span><span></span><span></span>';
+  div.appendChild(av); div.appendChild(thinking);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function t2HideThinking() {
+  const el = document.getElementById('t2ThinkingBubble');
+  if (el) el.remove();
+}
+
+// ── Keyboard shortcut: Ctrl+Space toggles T2 ─────────────────────
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.code === 'Space' && currentUser) {
+    e.preventDefault();
+    t2Toggle();
+  }
+});
+</script>
+</body>
+</html>
