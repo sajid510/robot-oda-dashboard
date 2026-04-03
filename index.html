@@ -2218,7 +2218,7 @@ window.onload = () => {
     <div class="t2-setup-desc">
       To activate T2, enter your Anthropic API key.<br>
       Get one at <strong style="color:#7c6af7">console.anthropic.com</strong><br>
-      Your key is stored only in this browser's localStorage.
+     Key is stored in this browser (shared + member profile localStorage).
     </div>
     <input class="t2-key-input" id="t2KeyInput" type="password" placeholder="sk-ant-api03-...">
     <button class="t2-save-key" onclick="t2SaveKey()">Activate T2 &#9654;</button>
@@ -2262,6 +2262,18 @@ const T2 = {
   unread: 0,
   thinking: false
 };
+
+  function t2KeyForMember(member) {
+  return member ? `t2_api_key_${member}` : null;
+}
+
+function t2ResolveApiKey() {
+  const memberKey = t2KeyForMember(currentUser);
+  return (memberKey && localStorage.getItem(memberKey))
+    || localStorage.getItem('t2_api_key_shared')
+    || localStorage.getItem('t2_api_key') // legacy key
+    || null;
+}
 
 // ── Implementation Bible summary (injected into every system prompt)
 const BIBLE_SUMMARY = `
@@ -2320,7 +2332,7 @@ PHASES (8 total):
 
 // ── Boot T2 ───────────────────────────────────────────────────────
 function t2Boot() {
-  T2.apiKey = localStorage.getItem('t2_api_key');
+  T2.apiKey = t2ResolveApiKey();
   const setup = document.getElementById('t2Setup');
   const msgs  = document.getElementById('t2Messages');
   if (!T2.apiKey) {
@@ -2340,7 +2352,10 @@ function t2SaveKey() {
     alert('Invalid key format. Anthropic keys start with sk-ant-...');
     return;
   }
-  localStorage.setItem('t2_api_key', key);
+  const memberKey = t2KeyForMember(currentUser);
+  if (memberKey) localStorage.setItem(memberKey, key);
+  localStorage.setItem('t2_api_key_shared', key);
+  localStorage.setItem('t2_api_key', key); // keep legacy compatibility
   T2.apiKey = key;
   document.getElementById('t2Setup').style.display = 'none';
   document.getElementById('t2Messages').style.display = 'flex';
@@ -2370,6 +2385,9 @@ function t2Toggle() {
 const _origLogin = loginUser;
 loginUser = function(member) {
   _origLogin(member);
+  T2.history = [];
+  T2.projectContext = null;
+  T2.apiKey = t2ResolveApiKey();
   document.getElementById('t2Bubble').style.display = 'flex';
 };
 const _origLogout = logout;
@@ -2557,7 +2575,11 @@ async function t2Ask(text) {
     if (e.message.includes('401')) errMsg = 'Invalid API key. Please update your key in T2 settings.';
     if (e.message.includes('429')) errMsg = 'Rate limit reached. Please wait a moment and try again.';
     if (e.message.includes('CORS') || e.message.includes('fetch')) {
-      errMsg = 'CORS error: Your browser is blocking the API call. Make sure this page is served from GitHub Pages (not file://) and the API key is correct.';
+      if (location.protocol === 'file:') {
+        errMsg = 'CORS error: this page is opened as file://. Host it on GitHub Pages (https://...) and try again.';
+      } else {
+        errMsg = 'CORS error: your browser/network blocked the Anthropic call. Use GitHub Pages (https), disable blocking extensions for this site, and verify the API key.';
+      }
     }
     t2AddMessage('ai', `⚠️ ${errMsg}`);
   }
