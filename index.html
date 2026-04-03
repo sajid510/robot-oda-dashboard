@@ -2268,12 +2268,12 @@ const T2 = {
   return member ? `t2_api_key_${member}` : null;
 }
 
-function t2ResolveApiKey() {
+function t2StoreResolvedKey(key) {
+  if (typeof key !== 'string' || !key.startsWith('sk-ant')) return;
   const memberKey = t2KeyForMember(currentUser);
-  return (memberKey && localStorage.getItem(memberKey))
-    || localStorage.getItem('t2_api_key_shared')
-    || localStorage.getItem('t2_api_key') // legacy key
-    || null;
+  if (memberKey) localStorage.setItem(memberKey, key);
+  localStorage.setItem('t2_api_key_shared', key);
+  localStorage.setItem('t2_api_key', key); // keep legacy compatibility
 }
 
 // ── Implementation Bible summary (injected into every system prompt)
@@ -2340,6 +2340,14 @@ function t2Boot() {
     setup.style.display = 'flex';
     setup.style.flexDirection = 'column';
     msgs.style.display = 'none';
+    dbOnce('t2/apiKeyShared', sharedKey => {
+      if (typeof sharedKey !== 'string' || !sharedKey || T2.apiKey) return;
+      t2StoreResolvedKey(sharedKey);
+      T2.apiKey = sharedKey;
+      setup.style.display = 'none';
+      msgs.style.display = 'flex';
+      t2WelcomeMessage();
+    });
   } else {
     setup.style.display = 'none';
     msgs.style.display = 'flex';
@@ -2353,10 +2361,8 @@ function t2SaveKey() {
     alert('Invalid key format. Anthropic keys start with sk-ant-...');
     return;
   }
-  const memberKey = t2KeyForMember(currentUser);
-  if (memberKey) localStorage.setItem(memberKey, key);
-  localStorage.setItem('t2_api_key_shared', key);
-  localStorage.setItem('t2_api_key', key); // keep legacy compatibility
+  t2StoreResolvedKey(key);
+  dbSet('t2/apiKeyShared', key);
   T2.apiKey = key;
   document.getElementById('t2Setup').style.display = 'none';
   document.getElementById('t2Messages').style.display = 'flex';
@@ -2369,14 +2375,13 @@ function t2WelcomeMessage() {
   T2.welcomeChecked = true;
   const welcomePath = `t2/welcomeShown/${currentUser || 'teammate'}`;
   dbOnce(welcomePath, seen => {
-    if (seen) return;
+    if (seen === true || (typeof seen === 'number' && seen > 0)) return;
   const displayName = currentUser
     ? currentUser.charAt(0).toUpperCase() + currentUser.slice(1)
     : 'teammate';
   const roleLine = currentUser === 'sadnan'
     ? '• Support you with workload balance and priorities as team lead'
     : '• Keep your work aligned with Sadnan’s integration priorities';
-
   t2AddMessage('ai', `Hello, ${displayName}! I'm **T2**, your AI coordinator for robot_oda.\n\nI have full context of the Implementation Bible and your live project data. I can help you:\n\n• Track who is doing what and what's blocked\n• Manage B→A and C→A handoffs on the critical path\n• Detect bottlenecks and interpret progress\n• Surface engineering decisions, errors, and lessons\n${roleLine}\n\nWhat do you need right now?`);
 dbSet(welcomePath, Date.now());
   });
