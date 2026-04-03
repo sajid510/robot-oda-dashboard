@@ -2260,7 +2260,8 @@ const T2 = {
   apiKey: null,
   projectContext: null, // snapshot of Firebase data
   unread: 0,
-  thinking: false
+  thinking: false,
+  welcomeChecked: false
 };
 
   function t2KeyForMember(member) {
@@ -2364,20 +2365,22 @@ function t2SaveKey() {
 
 function t2WelcomeMessage() {
   if (T2.history.length > 0) return;
+  if (T2.welcomeChecked) return;
+  T2.welcomeChecked = true;
+  const welcomePath = `t2/welcomeShown/${currentUser || 'teammate'}`;
+  dbOnce(welcomePath, seen => {
+    if (seen) return;
   const displayName = currentUser
     ? currentUser.charAt(0).toUpperCase() + currentUser.slice(1)
     : 'teammate';
   const roleLine = currentUser === 'sadnan'
     ? '• Support you with workload balance and priorities as team lead'
     : '• Keep your work aligned with Sadnan’s integration priorities';
-const displayName = currentUser
-    ? currentUser.charAt(0).toUpperCase() + currentUser.slice(1)
-    : 'teammate';
-  const roleLine = currentUser === 'sadnan'
-    ? '• Support you with workload balance and priorities as team lead'
-    : '• Keep your work aligned with Sadnan’s integration priorities';
+
   t2AddMessage('ai', `Hello, ${displayName}! I'm **T2**, your AI coordinator for robot_oda.\n\nI have full context of the Implementation Bible and your live project data. I can help you:\n\n• Track who is doing what and what's blocked\n• Manage B→A and C→A handoffs on the critical path\n• Detect bottlenecks and interpret progress\n• Surface engineering decisions, errors, and lessons\n${roleLine}\n\nWhat do you need right now?`);
-}
+dbSet(welcomePath, Date.now());
+  });
+  }
 
 // ── Toggle panel ─────────────────────────────────────────────────
 function t2Toggle() {
@@ -2399,6 +2402,7 @@ loginUser = function(member) {
   _origLogin(member);
   T2.history = [];
   T2.projectContext = null;
+  T2.welcomeChecked = false;
   T2.apiKey = t2ResolveApiKey();
   document.getElementById('t2Bubble').style.display = 'flex';
 };
@@ -2407,7 +2411,7 @@ logout = function() {
   _origLogout();
   document.getElementById('t2Bubble').style.display = 'none';
   document.getElementById('t2Panel').classList.remove('open');
-  T2.open = false; T2.history = [];
+  T2.open = false; T2.history = []; T2.welcomeChecked = false;
 };
 
 // ── Load live context from Firebase ──────────────────────────────
