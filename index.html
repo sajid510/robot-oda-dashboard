@@ -1017,6 +1017,8 @@ function loginUser(member) {
   leaderUnlocked = false;
   document.getElementById('welcome').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  const bubble = document.getElementById('t2Bubble');
+  if (bubble) bubble.style.display = 'flex';
   buildNav();
   document.getElementById('topUserTag').textContent = member.charAt(0).toUpperCase() + member.slice(1);
   initDashboard();
@@ -1027,6 +1029,10 @@ function logout() {
   currentUser = null; leaderUnlocked = false;
   document.getElementById('app').style.display = 'none';
   document.getElementById('welcome').style.display = 'flex';
+  const bubble = document.getElementById('t2Bubble');
+  const panel = document.getElementById('t2Panel');
+  if (bubble) bubble.style.display = 'none';
+  if (panel) panel.classList.remove('open');
   ['p1','p2','p3','p4'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('pinArea').classList.remove('show');
 }
@@ -1037,7 +1043,7 @@ function logout() {
 function buildNav() {
   const nav = document.getElementById('topNav');
   nav.innerHTML = '';
-  const pages = ['My Dashboard','Team Update','Post an Error!'];
+  const pages = ['My Dashboard','Team Update','Post an Error!','T2 Chat'];
   if (currentUser === 'sadnan') pages.push('Leader Control');
   pages.forEach(p => {
     const b = document.createElement('button');
@@ -1059,6 +1065,11 @@ function navClick(label) {
   if (label === 'My Dashboard') { showPage('pageDash'); setActiveNav(label); }
   else if (label === 'Team Update') { showPage('pageTeam'); setActiveNav(label); loadTeamPage(); }
   else if (label === 'Post an Error!') { openModal('overlayPostError'); }
+     else if (label === 'T2 Chat') {
+    setActiveNav(label);
+    if (!T2.open) t2Toggle();
+    else document.getElementById('t2Input')?.focus();
+  }
   else if (label === 'Leader Control') { showLeaderPinPrompt(); }
 }
 
@@ -2648,8 +2659,7 @@ function t2AddMessage(role, text) {
 }
 
 function t2FormatText(text) {
-  return text
-    const normalized = String(text || '')
+  const normalized = String(text || '')
     .replace(/\\n/g, '\n')
     .replace(/\\t/g, '\t');
   return normalized
