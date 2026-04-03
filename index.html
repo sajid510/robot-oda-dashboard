@@ -54,20 +54,20 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 /* ── WELCOME SCREEN ── */
 #welcome{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000}
-.welcome-canvas{position:absolute;inset:0;overflow:hidden}
+.welcome-canvas{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
 .grid-line{position:absolute;background:rgba(124,106,247,.06)}
 .grid-line.h{width:100%;height:1px}
 .grid-line.v{width:1px;height:100%}
-.orbit-system{position:relative;width:220px;height:220px;margin-bottom:32px}
+.orbit-system{position:relative;width:220px;height:220px;margin-bottom:32px;z-index:1}
 .orbit-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;background:linear-gradient(135deg,var(--purple),var(--cyan));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 30px rgba(124,106,247,.5)}
 .orbit-ring{position:absolute;top:50%;left:50%;width:160px;height:160px;margin:-80px;border:1px dashed rgba(124,106,247,.25);border-radius:50%}
 .orbit-dot{position:absolute;top:50%;left:50%;width:14px;height:14px;margin:-7px;border-radius:50%;box-shadow:0 0 10px currentColor}
 .orbit-dot.a{animation:orbitA 4s linear infinite;background:var(--purple);color:var(--purple)}
 .orbit-dot.b{animation:orbitB 4s linear infinite;background:var(--cyan);color:var(--cyan)}
 .orbit-dot.c{animation:orbitC 4s linear infinite;background:var(--green);color:var(--green)}
-.welcome-title{font-size:28px;font-weight:700;letter-spacing:3px;color:var(--text);margin-bottom:4px}
-.welcome-sub{font-size:12px;color:var(--text3);letter-spacing:6px;margin-bottom:40px}
-.login-modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:28px;width:340px;animation:fadeIn .4s ease}
+.welcome-title{font-size:28px;font-weight:700;letter-spacing:3px;color:var(--text);margin-bottom:4px;z-index:1}
+.welcome-sub{font-size:12px;color:var(--text3);letter-spacing:6px;margin-bottom:40px;z-index:1}
+.login-modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:28px;width:340px;animation:fadeIn .4s ease;position:relative;z-index:1}
 .login-modal h3{text-align:center;font-size:14px;color:var(--text2);letter-spacing:2px;margin-bottom:20px}
 .member-btn{width:100%;padding:14px 20px;margin-bottom:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;gap:12px;transition:all .2s}
 .member-btn:hover{border-color:var(--purple);background:rgba(124,106,247,.1)}
@@ -916,7 +916,7 @@ const DEFAULT_GOALS = {
 // ── FIREBASE INIT ──────────────────────────────────────────────────
 function initFirebase() {
   try {
-    firebase.initializeApp(FB_CONFIG);
+    firebase.initializeApp(firebaseConfig);
     db = firebase.database();
     fbReady = true;
     console.log('Firebase ready');
