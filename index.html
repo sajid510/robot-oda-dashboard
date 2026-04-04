@@ -2286,6 +2286,21 @@ function t2StoreResolvedKey(key) {
   localStorage.setItem('t2_api_key_shared', key);
   localStorage.setItem('t2_api_key', key); // keep legacy compatibility
 }
+  function t2ResolveApiKey() {
+  const keysToTry = [];
+  const memberKey = t2KeyForMember(currentUser);
+  if (memberKey) keysToTry.push(memberKey);
+  keysToTry.push('t2_api_key_shared', 't2_api_key');
+
+  for (const keyName of keysToTry) {
+    const value = localStorage.getItem(keyName);
+    if (typeof value === 'string' && value.startsWith('sk-ant')) {
+      return value;
+    }
+  }
+  return null;
+}
+
 
 // ── Implementation Bible summary (injected into every system prompt)
 const BIBLE_SUMMARY = `
