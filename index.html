@@ -2558,7 +2558,13 @@ function t2Send() {
 }
 
 async function t2Ask(text) {
-  if (!T2.apiKey) { t2Boot(); return; }
+  if (!T2.apiKey) {
+    t2Boot();
+    t2AddMessage('user', text);
+    const fallback = t2LocalReply(text);
+    t2AddMessage('ai', `⚠️ Anthropic API key is not connected yet.\n\n${fallback}\n\nTo enable full AI responses, open **Connect Anthropic API** inside T2 and save a valid key.`);
+    return;
+  }
   if (T2.thinking) return;
 
   // Refresh context before each call
@@ -2634,6 +2640,33 @@ async function t2Ask(text) {
   T2.thinking = false;
   document.getElementById('t2SendBtn').disabled = false;
 }
+  function t2LocalReply(text) {
+  const q = (text || '').toLowerCase();
+  const ctx = T2.projectContext || {};
+  const progress = ctx.progress || {};
+  const status = ctx.status || {};
+  const tasks = ctx.tasks || {};
+  const issues = Object.values(ctx.issues || {});
+  const openIssues = issues.filter(i => !i.solved);
+  const openByMember = ['sadnan','tazin','akib'].map(member => {
+    const todo = Object.values(tasks[member]?.upcoming || {}).filter(t => !t.done).length;
+    return `${member}: ${todo} upcoming`;
+  }).join(' | ');
+
+  if (q.includes('who') && q.includes('doing')) {
+    return `Current snapshot:\n- Sadnan: ${status.sadnan || 'unknown'} (${progress.sadnan || 0}%)\n- Tazin: ${status.tazin || 'unknown'} (${progress.tazin || 0}%)\n- Akib: ${status.akib || 'unknown'} (${progress.akib || 0}%)`;
+  }
+  if (q.includes('block')) {
+    return openIssues.length
+      ? `Open blockers/issues: ${openIssues.length}\n${openIssues.slice(0,3).map(i => `- ${i.author || 'member'} · ${i.section || 'General'} · ${(i.body || '').slice(0,90)}`).join('\n')}`
+      : 'No open blockers found in the latest dashboard snapshot.';
+  }
+  if (q.includes('next')) {
+    return `Task pressure snapshot:\n${openByMember}\n\nFocus recommendation: pick the highest-weight upcoming item on your own track and update status before starting.`;
+  }
+  return `Live dashboard snapshot:\n- Open issues: ${openIssues.length}\n- Progress: S ${progress.sadnan || 0}% | T ${progress.tazin || 0}% | A ${progress.akib || 0}%\n- Upcoming tasks: ${openByMember}`;
+}
+
 
 // ── Message rendering ─────────────────────────────────────────────
 function t2AddMessage(role, text) {
