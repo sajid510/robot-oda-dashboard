@@ -2238,13 +2238,13 @@ window.onload = () => {
 
   <!-- API Key setup (shown when no key stored) -->
   <div class="t2-setup" id="t2Setup" style="display:none">
-    <div class="t2-setup-title">&#128273; Connect Anthropic API</div>
+    <div class="t2-setup-title">&#128273; Connect Groq API</div>
     <div class="t2-setup-desc">
-      To activate T2, enter your Anthropic API key.<br>
-      Get one at <strong style="color:#7c6af7">console.anthropic.com</strong><br>
+      To activate T2, enter your Groq API key.<br>
+      Get one at <strong style="color:#7c6af7">console.groq.com</strong><br>
      Key is stored in this browser (shared + member profile localStorage).
     </div>
-    <input class="t2-key-input" id="t2KeyInput" type="password" placeholder="sk-ant-api03-...">
+    <input class="t2-key-input" id="t2KeyInput" type="password" placeholder="gsk_...">
     <button class="t2-save-key" onclick="t2SaveKey()">Activate T2 &#9654;</button>
   </div>
 
@@ -2388,9 +2388,16 @@ function t2Boot() {
       t2WelcomeMessage();
     });
   } else {
-    setup.style.display = 'none';
-    msgs.style.display = 'flex';
-    t2WelcomeMessage();
+    t2ValidateKey(T2.apiKey).then(isValid => {
+      if (!isValid) {
+        t2ResetKey();
+        alert('Stored Groq API key is invalid or expired. Please enter a new key.');
+        return;
+      }
+      setup.style.display = 'none';
+      msgs.style.display = 'flex';
+      t2WelcomeMessage();
+    });
   }
 }
 function t2ClearMessages() {
@@ -2398,10 +2405,15 @@ function t2ClearMessages() {
   if (msgs) msgs.innerHTML = '';
 }
   
-function t2SaveKey() {
+async function t2SaveKey() {
   const key = document.getElementById('t2KeyInput').value.trim();
   if (!key) {
-    alert('Please enter a valid Gemini API key.');
+    alert('Please enter a valid Groq API key.');
+    return;
+  }
+  const isValid = await t2ValidateKey(key);
+  if (!isValid) {
+    alert('This Groq API key is invalid or expired. Please try another key.');
     return;
   }
   t2StoreResolvedKey(key);
@@ -2410,6 +2422,16 @@ function t2SaveKey() {
   document.getElementById('t2Setup').style.display = 'none';
   document.getElementById('t2Messages').style.display = 'flex';
   t2WelcomeMessage();
+}
+  async function t2ValidateKey(key) {
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { 'Authorization': `Bearer ${key}` }
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 function t2ResetKey() {
   const memberKey = t2KeyForMember(currentUser);
