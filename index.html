@@ -2380,7 +2380,11 @@ function t2Boot() {
     t2WelcomeMessage();
   }
 }
-
+function t2ClearMessages() {
+  const msgs = document.getElementById('t2Messages');
+  if (msgs) msgs.innerHTML = '';
+}
+  
 function t2SaveKey() {
   const key = document.getElementById('t2KeyInput').value.trim();
   if (!key.startsWith('sk-ant')) {
@@ -2431,6 +2435,7 @@ function t2Toggle() {
 const _origLogin = loginUser;
 loginUser = function(member) {
   _origLogin(member);
+   t2ClearMessages();
   T2.history = [];
   T2.projectContext = null;
   T2.welcomeChecked = false;
@@ -2440,6 +2445,7 @@ loginUser = function(member) {
 const _origLogout = logout;
 logout = function() {
   _origLogout();
+  t2ClearMessages();
   document.getElementById('t2Bubble').style.display = 'none';
   document.getElementById('t2Panel').classList.remove('open');
   T2.open = false; T2.history = []; T2.welcomeChecked = false;
