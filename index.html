@@ -2566,7 +2566,6 @@ function t2SetMode(mode, btn) {
   T2.mode = mode;
   document.querySelectorAll('.t2-mode').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  t2LoadContext();
 
   const prompts = {
     status:  'Give me a full status report: who is working on what, current progress percentages, and current statuses for all three members.',
@@ -2602,8 +2601,7 @@ async function t2Ask(text) {
 
   // Refresh context before each call
   t2LoadContext();
-  await new Promise(r => setTimeout(r, 300));
-
+await new Promise(r => setTimeout(r, 1500));
   t2AddMessage('user', text);
   T2.history.push({ role: 'user', content: text });
   t2ShowThinking();
