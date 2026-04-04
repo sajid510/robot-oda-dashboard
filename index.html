@@ -1903,7 +1903,6 @@ window.onload = () => {
 .t2-name { font-size: 13px; font-weight: 700; color: #e2e8f0; }
 .t2-role { font-size: 10px; color: #64748b; letter-spacing: .5px; }
 .t2-close {
-  margin-left: auto;
   background: none;
   border: none;
   color: #64748b;
@@ -1915,6 +1914,19 @@ window.onload = () => {
   transition: color .15s;
 }
 .t2-close:hover { color: #e2e8f0; }
+  .t2-key-reset {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: color .15s;
+}
+.t2-key-reset:hover { color: #e2e8f0; }
 
 /* ── Mode tabs ───────────────────────────────────────────────────── */
 .t2-modes {
@@ -2204,6 +2216,7 @@ window.onload = () => {
       <div class="t2-name">T2</div>
       <div class="t2-role">AI PROJECT COORDINATOR &nbsp;&#x2022;&nbsp; robot_oda</div>
     </div>
+    <button class="t2-key-reset" onclick="t2ResetKey()" title="Reset API key">&#128273;</button>
     <button class="t2-close" onclick="t2Toggle()">&#x2715;</button>
   </div>
 
@@ -2398,7 +2411,21 @@ function t2SaveKey() {
   document.getElementById('t2Messages').style.display = 'flex';
   t2WelcomeMessage();
 }
-
+function t2ResetKey() {
+  const memberKey = t2KeyForMember(currentUser);
+  if (memberKey) localStorage.removeItem(memberKey);
+  localStorage.removeItem('t2_api_key_shared');
+  localStorage.removeItem('t2_api_key');
+  dbSet('t2/apiKeyShared', null);
+  T2.apiKey = null;
+  T2.history = [];
+  T2.welcomeChecked = false;
+  t2ClearMessages();
+  document.getElementById('t2KeyInput').value = '';
+  document.getElementById('t2Messages').style.display = 'none';
+  document.getElementById('t2Setup').style.display = 'flex';
+  document.getElementById('t2Setup').style.flexDirection = 'column';
+}
 function t2WelcomeMessage() {
   if (T2.history.length > 0) return;
   if (T2.welcomeChecked) return;
@@ -2593,7 +2620,7 @@ async function t2Ask(text) {
         'Content-Type': 'application/json',
         'x-api-key': T2.apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-calls': 'true'
+        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
@@ -2605,7 +2632,8 @@ async function t2Ask(text) {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API error ${response.status}`);
+      const msg = err.error?.message || `API error ${response.status}`;
+      throw new Error(`HTTP_${response.status}:${msg}`);
     }
 
     const data = await response.json();
@@ -2630,14 +2658,20 @@ async function t2Ask(text) {
 
   } catch(e) {
     t2HideThinking();
+    const fallback = t2LocalReply(text);
     let errMsg = `Connection error: ${e.message}`;
-    if (e.message.includes('401')) errMsg = 'Invalid API key. Please update your key in T2 settings.';
-    if (e.message.includes('429')) errMsg = 'Rate limit reached. Please wait a moment and try again.';
-    if (e.message.includes('CORS') || e.message.includes('fetch')) {
+    const m = e?.message || '';
+    if (m.includes('HTTP_401') || m.includes('authentication') || m.includes('invalid x-api-key')) {
+      errMsg = 'Authentication failed. Your Anthropic API key is invalid, expired, or missing browser-access permission. Click 🔑 to reset and re-enter your key.';
+    } else if (m.includes('HTTP_429') || m.includes('rate limit')) {
+      errMsg = 'Rate limit reached. Please wait a moment and try again.';
+    } else if (m.includes('HTTP_403') || m.includes('permission') || m.includes('not allowed')) {
+      errMsg = 'Access denied by Anthropic. Ensure browser direct access is enabled for this request and your key has permission.';
+    } else if (m.includes('CORS') || m.includes('fetch') || m.includes('Failed to fetch') || m.includes('NetworkError')) {
       if (location.protocol === 'file:') {
-        errMsg = 'CORS error: this page is opened as file://. Host it on GitHub Pages (https://...) and try again.';
+        errMsg = 'Network/CORS issue: this page is opened as file://. Host it on GitHub Pages (https://...) and try again.';
       } else {
-        errMsg = 'CORS error: your browser/network blocked the Anthropic call. Use GitHub Pages (https), disable blocking extensions for this site, and verify the API key.';
+        errMsg = 'Network/CORS issue: your browser or network blocked the Anthropic call. Use GitHub Pages (https), disable blocking extensions for this site, and verify the API key.';
       }
     }
    t2AddMessage('ai', `⚠️ ${errMsg}\n\nI can still answer from your local dashboard data right now:\n\n${fallback}`);
