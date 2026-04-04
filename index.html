@@ -2640,7 +2640,7 @@ async function t2Ask(text) {
         errMsg = 'CORS error: your browser/network blocked the Anthropic call. Use GitHub Pages (https), disable blocking extensions for this site, and verify the API key.';
       }
     }
-    t2AddMessage('ai', `⚠️ ${errMsg}`);
+   t2AddMessage('ai', `⚠️ ${errMsg}\n\nI can still answer from your local dashboard data right now:\n\n${fallback}`);
   }
 
   T2.thinking = false;
