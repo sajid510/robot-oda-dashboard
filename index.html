@@ -700,6 +700,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 <div class="modal sm">
   <button class="modal-close" onclick="closeModal('modalMyPin')">&times;</button>
   <div class="modal-title">&#128274; Change My 4-Digit PIN</div>
+  <div style="font-size:11px;color:var(--text3);margin-bottom:10px">
+    Forgot your current PIN? Use <b>Reset PIN</b> to restore your personal default PIN.
+  </div>
   <div class="form-group">
     <label class="form-label">Current PIN</label>
     <input class="form-input" id="myPinCurrent" type="password" maxlength="4" inputmode="numeric" placeholder="Current 4-digit PIN">
@@ -714,6 +717,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
   <div class="inline-msg" id="myPinMsg"></div>
   <div class="modal-footer">
+    <button class="btn-sm danger" onclick="resetMyPin()" style="margin-right:auto">Reset PIN</button>
     <button class="btn-secondary" onclick="closeModal('modalMyPin')">Cancel</button>
     <button class="btn-primary" onclick="saveMyPin()">Save PIN</button>
   </div>
@@ -1217,6 +1221,19 @@ function closeLeaderPin() { document.getElementById('leaderPinScreen').classList
   });
 }
 
+  function resetMyPin() {
+  if (!currentUser) return;
+  const fallbackPin = DEFAULT_MEMBER_PINS[currentUser];
+  if (!fallbackPin) {
+    setInlineMsg('myPinMsg', 'Default PIN is not available for this member.', false);
+    return;
+  }
+  if (!window.confirm('Reset your PIN to the default team PIN for your account?')) return;
+  dbSet(`credentials/${currentUser}/pin`, fallbackPin).then(() => {
+    setInlineMsg('myPinMsg', 'PIN reset successfully. Your default PIN is active now.', true);
+    ['myPinCurrent','myPinNew','myPinConfirm'].forEach(id => document.getElementById(id).value = '');
+  });
+}
 function loadMemberPins() {
   const list = document.getElementById('memberPinList');
   if (!list) return;
