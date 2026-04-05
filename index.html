@@ -235,12 +235,19 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 /* ── LEADER CONTROL ── */
 .leader-wrap{padding:16px 20px;max-width:1200px;margin:0 auto}
 .leader-header{text-align:center;margin-bottom:24px}
-.leader-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.leader-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:20px}
 .leader-widget{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:all .25s;text-align:center}
 .leader-widget:hover{border-color:var(--purple);background:rgba(124,106,247,.08);transform:translateY(-2px)}
 .leader-widget-icon{font-size:32px;margin-bottom:10px}
 .leader-widget-title{font-size:12px;font-weight:700;color:var(--text);letter-spacing:1px;margin-bottom:4px}
 .leader-widget-desc{font-size:11px;color:var(--text3)}
+  .password-list{display:flex;flex-direction:column;gap:8px}
+.password-row{display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px}
+.password-row .name{color:var(--text2)}
+.password-row .pin{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--amber);font-weight:700;letter-spacing:1px}
+.inline-msg{font-size:11px;margin-top:8px;display:none}
+.inline-msg.ok{color:var(--green)}
+.inline-msg.err{color:var(--red)}
 
 /* ── COMPARISON CHART ── */
 .compare-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
@@ -453,6 +460,15 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
           <button class="see-more" onclick="openModal('modalDoneSession')">see more &#x25BE;</button>
         </div>
       </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Security</span>
+        </div>
+        <div class="card-body compact">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Set your own 4-digit login PIN.</div>
+          <button class="btn-sm" style="width:100%" onclick="openModal('modalMyPin')">Change My PIN</button>
+        </div>
+      </div>
     </div>
 
   </div><!-- /dash-grid -->
@@ -623,6 +639,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div class="leader-widget-title">Add Tasks</div>
       <div class="leader-widget-desc">Add upcoming or session tasks to any member</div>
     </div>
+    <div class="leader-widget" onclick="openModal('modalMemberPins');loadMemberPins();">
+      <div class="leader-widget-icon">&#128273;</div>
+      <div class="leader-widget-title">Member PINs</div>
+      <div class="leader-widget-desc">Forgot password support for all team members</div>
+    </div>
   </div>
 
   <!-- Performance Graph -->
@@ -674,6 +695,40 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
 </div>
 
+  <!-- Change My PIN -->
+<div class="overlay" id="modalMyPin">
+<div class="modal sm">
+  <button class="modal-close" onclick="closeModal('modalMyPin')">&times;</button>
+  <div class="modal-title">&#128274; Change My 4-Digit PIN</div>
+  <div class="form-group">
+    <label class="form-label">Current PIN</label>
+    <input class="form-input" id="myPinCurrent" type="password" maxlength="4" inputmode="numeric" placeholder="Current 4-digit PIN">
+  </div>
+  <div class="form-group">
+    <label class="form-label">New PIN (4 digits)</label>
+    <input class="form-input" id="myPinNew" type="password" maxlength="4" inputmode="numeric" placeholder="New 4-digit PIN">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Confirm New PIN</label>
+    <input class="form-input" id="myPinConfirm" type="password" maxlength="4" inputmode="numeric" placeholder="Repeat new PIN">
+  </div>
+  <div class="inline-msg" id="myPinMsg"></div>
+  <div class="modal-footer">
+    <button class="btn-secondary" onclick="closeModal('modalMyPin')">Cancel</button>
+    <button class="btn-primary" onclick="saveMyPin()">Save PIN</button>
+  </div>
+</div>
+</div>
+
+<!-- Leader: Member PINs -->
+<div class="overlay" id="modalMemberPins">
+<div class="modal sm">
+  <button class="modal-close" onclick="closeModal('modalMemberPins')">&times;</button>
+  <div class="modal-title">&#128273; Member PINs (Leader only)</div>
+  <div class="password-list" id="memberPinList"></div>
+</div>
+</div>
+  
 <!-- Post Error Modal -->
 <div class="overlay" id="overlayPostError">
 <div class="modal wide">
@@ -905,9 +960,10 @@ const firebaseConfig = {
   appId: "1:391153062918:web:47bfca0e7d39a564eb5f87"
 };
 
-// ── PINS (hashed comparison) ──────────────────────────────────────
-const PINS = { sadnan:'5102', tazin:'1234', akib:'1234' };
+// ── PINS ────────────────────────────────────────────────────────────
+const DEFAULT_MEMBER_PINS = { sadnan:'5102', tazin:'1234', akib:'1234' };
 const ADMIN_PIN = '2580';
+  const MEMBER_LIST = ['sadnan','tazin','akib'];
 
 // ── STATE ─────────────────────────────────────────────────────────
 let db, currentUser = null, leaderUnlocked = false;
@@ -988,6 +1044,28 @@ function buildGrid() {
   for (let i=0;i<20;i++){const l=document.createElement('div');l.className='grid-line v';l.style.left=(i*5.5)+'%';c.appendChild(l);}
 }
 
+  // ═══════════════════════════════════════════════════════════════════
+// PIN HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function normalizePin(pin) {
+  return /^\d{4}$/.test(pin || '') ? pin : null;
+}
+
+function getMemberPin(member, cb) {
+  dbOnce(`credentials/${member}/pin`, val => {
+    const saved = normalizePin(typeof val === 'string' ? val : '');
+    cb(saved || DEFAULT_MEMBER_PINS[member]);
+  });
+}
+
+function setInlineMsg(elId, text, ok) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'inline-msg ' + (ok ? 'ok' : 'err');
+  el.style.display = text ? 'block' : 'none';
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════════════════════════
@@ -1010,13 +1088,15 @@ function pinSubmit() { checkPin(); }
 
 function checkPin() {
   const pin = ['p1','p2','p3','p4'].map(id => document.getElementById(id).value).join('');
-  if (pin === PINS[pendingMember]) {
-    loginUser(pendingMember);
-  } else {
-    document.getElementById('pinError').style.display = 'block';
-    ['p1','p2','p3','p4'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('p1').focus();
-  }
+  getMemberPin(pendingMember, savedPin => {
+    if (pin === savedPin) {
+      loginUser(pendingMember);
+    } else {
+      document.getElementById('pinError').style.display = 'block';
+      ['p1','p2','p3','p4'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('p1').focus();
+    }
+  });
 }
 
 function loginUser(member) {
@@ -1109,6 +1189,57 @@ function checkLeaderPin() {
   }
 }
 function closeLeaderPin() { document.getElementById('leaderPinScreen').classList.remove('show'); }
+
+  function saveMyPin() {
+  if (!currentUser) return;
+  const current = (document.getElementById('myPinCurrent').value || '').trim();
+  const next = (document.getElementById('myPinNew').value || '').trim();
+  const confirm = (document.getElementById('myPinConfirm').value || '').trim();
+
+  if (!normalizePin(current) || !normalizePin(next)) {
+    setInlineMsg('myPinMsg', 'PIN must be exactly 4 digits.', false);
+    return;
+  }
+  if (next !== confirm) {
+    setInlineMsg('myPinMsg', 'New PIN and confirm PIN do not match.', false);
+    return;
+  }
+
+  getMemberPin(currentUser, oldPin => {
+    if (current !== oldPin) {
+      setInlineMsg('myPinMsg', 'Current PIN is incorrect.', false);
+      return;
+    }
+    dbSet(`credentials/${currentUser}/pin`, next).then(() => {
+      setInlineMsg('myPinMsg', 'PIN updated successfully.', true);
+      ['myPinCurrent','myPinNew','myPinConfirm'].forEach(id => document.getElementById(id).value = '');
+    });
+  });
+}
+
+function loadMemberPins() {
+  const list = document.getElementById('memberPinList');
+  if (!list) return;
+  list.innerHTML = '<div style="font-size:11px;color:var(--text3)">Loading...</div>';
+
+  const rows = [];
+  let left = MEMBER_LIST.length;
+  MEMBER_LIST.forEach(member => {
+    getMemberPin(member, pin => {
+      rows.push({ member, pin });
+      left -= 1;
+      if (left === 0) {
+        rows.sort((a,b) => MEMBER_LIST.indexOf(a.member) - MEMBER_LIST.indexOf(b.member));
+        list.innerHTML = rows.map(r => `
+          <div class="password-row">
+            <span class="name">${r.member.charAt(0).toUpperCase() + r.member.slice(1)}</span>
+            <span class="pin">${r.pin}</span>
+          </div>
+        `).join('');
+      }
+    });
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // MODAL HELPERS
