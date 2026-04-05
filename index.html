@@ -1057,9 +1057,22 @@ function normalizePin(pin) {
 
 function getMemberPin(member, cb) {
   dbOnce(`credentials/${member}/pin`, val => {
-    const saved = normalizePin(typeof val === 'string' ? val : '');
-    cb(saved || DEFAULT_MEMBER_PINS[member]);
+    const primary = normalizePin(typeof val === 'string' ? val : '');
+    if (primary) { cb(primary); return; }
+    // Backward compatibility: older builds stored PIN under `memberPins/{member}`.
+    dbOnce(`memberPins/${member}`, legacyVal => {
+      const legacy = normalizePin(typeof legacyVal === 'string' ? legacyVal : '');
+      cb(legacy || DEFAULT_MEMBER_PINS[member]);
+    });
   });
+}
+function setMemberPin(member, pin) {
+  // Keep both keys in sync so login and leader views always show the same PIN,
+  // even if one side still reads from a legacy path.
+  return Promise.all([
+    dbSet(`credentials/${member}/pin`, pin),
+    dbSet(`memberPins/${member}`, pin)
+  ]);
 }
 
 function setInlineMsg(elId, text, ok) {
@@ -1214,8 +1227,8 @@ function closeLeaderPin() { document.getElementById('leaderPinScreen').classList
       setInlineMsg('myPinMsg', 'Current PIN is incorrect.', false);
       return;
     }
-    dbSet(`credentials/${currentUser}/pin`, next).then(() => {
-      setInlineMsg('myPinMsg', 'PIN updated successfully.', true);
+setMemberPin(currentUser, next).then(() => {
+  setInlineMsg('myPinMsg', 'PIN updated successfully.', true);
       ['myPinCurrent','myPinNew','myPinConfirm'].forEach(id => document.getElementById(id).value = '');
     });
   });
@@ -1229,7 +1242,7 @@ function closeLeaderPin() { document.getElementById('leaderPinScreen').classList
     return;
   }
   if (!window.confirm('Reset your PIN to the default team PIN for your account?')) return;
-  dbSet(`credentials/${currentUser}/pin`, fallbackPin).then(() => {
+    setMemberPin(currentUser, fallbackPin).then(() => {
     setInlineMsg('myPinMsg', 'PIN reset successfully. Your default PIN is active now.', true);
     ['myPinCurrent','myPinNew','myPinConfirm'].forEach(id => document.getElementById(id).value = '');
   });
