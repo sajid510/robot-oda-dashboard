@@ -1169,11 +1169,7 @@ function navClick(label) {
   if (label === 'My Dashboard') { showPage('pageDash'); setActiveNav(label); }
   else if (label === 'Team Update') { showPage('pageTeam'); setActiveNav(label); loadTeamPage(); }
   else if (label === 'Post an Error!') { openModal('overlayPostError'); }
-     else if (label === 'T2 Chat') {
-    setActiveNav(label);
-    if (!T2.open) t2Toggle();
-    else document.getElementById('t2Input')?.focus();
-  }
+     else if (label === 'T2 Chat') { setActiveNav(label); t2OpenFromTopbar(); }
   else if (label === 'Leader Control') { showLeaderPinPrompt(); }
 }
 
@@ -2108,6 +2104,17 @@ max-height: calc(100dvh - 154px);  background: #0f1525;
   overflow: hidden;
 }
 #t2Panel.open { display: flex; }
+  #t2Panel.fullscreen {
+  top: 44px;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  max-height: none;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
 @keyframes t2slideIn {
   from { opacity: 0; transform: translateY(16px) scale(.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -2462,8 +2469,7 @@ max-height: calc(100dvh - 154px);  background: #0f1525;
       <div class="t2-role">AI PROJECT COORDINATOR &nbsp;&#x2022;&nbsp; robot_oda</div>
     </div>
     <button class="t2-key-reset" onclick="t2ResetKey()" title="Reset API key">&#128273;</button>
-    <button class="t2-close" onclick="t2Toggle()">&#x2715;</button>
-  </div>
+<button class="t2-close" onclick="t2ClosePanel()">&#x2715;</button>  </div>
 
   <!-- Context bar -->
   <div class="t2-context-bar" id="t2ContextBar">
@@ -2524,15 +2530,17 @@ max-height: calc(100dvh - 154px);  background: #0f1525;
 // ── T2 state ──────────────────────────────────────────────────────
 const T2 = {
   open: false,
+  fullscreen: false,
   mode: 'chat',
   history: [],          // {role, content}[]
   apiKey: null,
   projectContext: null, // snapshot of Firebase data
   unread: 0,
   thinking: false,
-  welcomeChecked: false
+ welcomeChecked: false,
+  historyLoadedFor: null
 };
-
+const T2_HISTORY_WINDOW_MS = 24 * 60 * 60 * 1000;
   function t2KeyForMember(member) {
   return member ? `t2_api_key_${member}` : null;
 }
@@ -2710,10 +2718,56 @@ function t2WelcomeMessage() {
 dbSet(welcomePath, Date.now());
   });
   }
+function t2HistoryPath(member) {
+  const safeMember = (member || 'teammate').replace(/[^a-z0-9_-]/gi, '').toLowerCase();
+  return `t2/history/${safeMember}`;
+}
+function t2PruneHistory() {
+  const path = t2HistoryPath(currentUser);
+  const cutoff = Date.now() - T2_HISTORY_WINDOW_MS;
+  dbOnce(path, raw => {
+    const all = raw && typeof raw === 'object' ? raw : {};
+    const kept = {};
+    Object.entries(all).forEach(([id, msg]) => {
+      if (!msg || typeof msg !== 'object') return;
+      const ts = Number(msg.timestamp || 0);
+      if (Number.isFinite(ts) && ts >= cutoff) kept[id] = msg;
+    });
+    dbSet(path, kept);
+  });
+}
+function t2LoadRecentHistory() {
+  if (!currentUser || T2.historyLoadedFor === currentUser) return;
+  const path = t2HistoryPath(currentUser);
+  const cutoff = Date.now() - T2_HISTORY_WINDOW_MS;
+  dbOnce(path, raw => {
+    const all = raw && typeof raw === 'object' ? raw : {};
+    const recent = Object.values(all)
+      .filter(msg => msg && typeof msg === 'object' && Number(msg.timestamp || 0) >= cutoff)
+      .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
+    t2ClearMessages();
+    T2.history = [];
+    recent.forEach(msg => {
+      const role = msg.role === 'assistant' ? 'assistant' : (msg.role === 'user' ? 'user' : null);
+      if (!role || typeof msg.content !== 'string' || !msg.content.trim()) return;
+      T2.history.push({ role, content: msg.content });
+      t2AddMessage(role === 'assistant' ? 'ai' : 'user', msg.content, { persist: false, timestamp: msg.timestamp });
+    });
+    T2.historyLoadedFor = currentUser;
+    t2PruneHistory();
+  });
+}
+function t2PersistMessage(role, text, timestamp) {
+  if (!currentUser) return;
+  const path = t2HistoryPath(currentUser);
+  dbPush(path, { role, content: text, timestamp: timestamp || Date.now() });
+}
 
+  
 // ── Toggle panel ─────────────────────────────────────────────────
 function t2Toggle() {
   T2.open = !T2.open;
+  if (!T2.open) t2SetFullscreen(false);
   const panel = document.getElementById('t2Panel');
   panel.classList.toggle('open', T2.open);
   if (T2.open) {
@@ -2725,6 +2779,24 @@ function t2Toggle() {
   }
 }
 
+  function t2SetFullscreen(enabled) {
+  const panel = document.getElementById('t2Panel');
+  const bubble = document.getElementById('t2Bubble');
+  T2.fullscreen = !!enabled;
+  panel.classList.toggle('fullscreen', T2.fullscreen);
+  if (bubble) bubble.style.display = T2.fullscreen ? 'none' : (currentUser ? 'flex' : 'none');
+}
+function t2OpenFromTopbar() {
+  if (!T2.open) t2Toggle();
+  t2SetFullscreen(true);
+  setTimeout(() => document.getElementById('t2Input')?.focus(), 100);
+}
+function t2ClosePanel() {
+  T2.open = false;
+  t2SetFullscreen(false);
+  document.getElementById('t2Panel').classList.remove('open');
+}
+
 // ── Show bubble after login ───────────────────────────────────────
 const _origLogin = loginUser;
 loginUser = function(member) {
@@ -2733,6 +2805,8 @@ loginUser = function(member) {
   T2.history = [];
   T2.projectContext = null;
   T2.welcomeChecked = false;
+  T2.historyLoadedFor = null;
+  T2.fullscreen = false;
   T2.apiKey = t2ResolveApiKey();
   document.getElementById('t2Bubble').style.display = 'flex';
 };
@@ -2742,7 +2816,8 @@ logout = function() {
   t2ClearMessages();
   document.getElementById('t2Bubble').style.display = 'none';
   document.getElementById('t2Panel').classList.remove('open');
-  T2.open = false; T2.history = []; T2.welcomeChecked = false;
+  T2.open = false; T2.history = []; T2.welcomeChecked = false; T2.historyLoadedFor = null;
+  T2.fullscreen = false;
 };
 
 // ── Load live context from Firebase ──────────────────────────────
@@ -3029,8 +3104,9 @@ async function t2Ask(text) {
 
 
 // ── Message rendering ─────────────────────────────────────────────
-function t2AddMessage(role, text) {
+function t2AddMessage(role, text, opts = {}) {
   const msgs = document.getElementById('t2Messages');
+  const timestamp = Number(opts.timestamp || Date.now());
   const div = document.createElement('div');
   div.className = 't2-msg ' + role;
 
@@ -3056,7 +3132,7 @@ function t2AddMessage(role, text) {
 
   const time = document.createElement('div');
   time.className = 't2-msg-time';
-  time.textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  time.textContent = new Date(timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
   wrap.appendChild(time);
 
   if (role === 'ai') { div.appendChild(avatarDiv); div.appendChild(wrap); }
@@ -3064,6 +3140,9 @@ function t2AddMessage(role, text) {
 
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
+  if (opts.persist !== false && (role === 'user' || role === 'ai')) {
+    t2PersistMessage(role === 'ai' ? 'assistant' : 'user', text, timestamp);
+  }
 }
 
 function t2FormatText(text) {
