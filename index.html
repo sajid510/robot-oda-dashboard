@@ -2193,9 +2193,7 @@ function leaderDeleteFile(scope, key) {
 // CHARTS
 // ═══════════════════════════════════════════════════════════════════
 function updateCharts(allTasks) {
-  const upcoming = Object.values(allTasks.upcoming || {});
-  const doneSession = Object.values(allTasks.doneSession || {});
-
+  
   // Chart 1: My Overall Progress — weight-adjusted
   const allUpcoming = Object.values(allTasks.upcoming || {});
   const allDone = Object.values(allTasks.doneTasks || {});
@@ -2204,30 +2202,23 @@ function updateCharts(allTasks) {
   const pct1 = totalWeight > 0 ? Math.round((doneWeight / totalWeight) * 100) : 0;
   setChart('chart1', pct1, `${allDone.length} / ${allUpcoming.length + allDone.length} tasks`, 'var(--purple)');
 
-  // Chart 2: active session weighted progress
-  const weightedValue = task => {
-    const w = Number(task?.weight);
-    return Number.isFinite(w) && w > 0 ? w : 1;
-  };
-  const normalizedSession = task => Number(task?.sessionIndex) || null;
-  const activeUpcomingSessions = upcoming.map(normalizedSession).filter(Boolean);
-  const activeDoneSessions = doneSession
-    .filter(task => !task?.isSessionCompletion)
-    .map(normalizedSession)
-    .filter(Boolean);
-  const activeSessionIndex = activeUpcomingSessions.length
-    ? Math.min(...activeUpcomingSessions)
-    : (activeDoneSessions.length ? Math.max(...activeDoneSessions) : 1);
+ // Current Session Progress — find the active session (lowest sessionIndex with remaining tasks)
+  const sessionCounts = {};
+  allUpcoming.forEach(t => {
+    const si = t.sessionIndex ?? 99;
+    sessionCounts[si] = (sessionCounts[si] || 0) + 1;
+  });
+  const currentSessionIndex = Object.keys(sessionCounts).map(Number).sort((a,b) => a-b)[0] ?? 0;
 
-  const activeSessionUpcoming = upcoming.filter(task => normalizedSession(task) === activeSessionIndex);
-  const activeSessionDone = doneSession.filter(task => (
-    !task?.isSessionCompletion && normalizedSession(task) === activeSessionIndex
-  ));
-  const activeDoneWeight = activeSessionDone.reduce((sum, task) => sum + weightedValue(task), 0);
-  const activeRemainingWeight = activeSessionUpcoming.reduce((sum, task) => sum + weightedValue(task), 0);
-  const activeTotalWeight = activeDoneWeight + activeRemainingWeight;
-  const pct2 = activeTotalWeight > 0 ? Math.round((activeDoneWeight / activeTotalWeight) * 100) : 0;
-  setChart('chart2', pct2, `S${activeSessionIndex} weight ${activeDoneWeight}/${activeTotalWeight}`, 'var(--cyan)');
+  const sessUpcoming = allUpcoming.filter(t => t.sessionIndex === currentSessionIndex);
+  const sessDone = Object.values(allTasks.doneTasks || {}).filter(t => t.sessionIndex === currentSessionIndex);
+
+  const sessTotalW = [...sessUpcoming, ...sessDone].reduce((s,t) => s + (t.weight||1), 0);
+  const sessDoneW = sessDone.reduce((s,t) => s + (t.weight||1), 0);
+  const pct2 = sessTotalW > 0 ? Math.round((sessDoneW / sessTotalW) * 100) : 0;
+  const sessName = (SESSION_DEFINITIONS[currentUser] || [])[currentSessionIndex]?.name || 'Session';
+
+  setChart('chart2', pct2, sessName.substring(0,22), 'var(--cyan)');
 
 
   // Update member progress on team page
@@ -2456,6 +2447,7 @@ function resetAllData(forceSeed = false) {
     dbRemove('tasks/akib'),
     dbRemove('teamTasks'),
     dbRemove('handoff'),
+    dbRemove('handoffs'),
     dbSet('memberProgress/sadnan', 0),
     dbSet('memberProgress/tazin', 0),
     dbSet('memberProgress/akib', 0),
@@ -2883,6 +2875,11 @@ function seedInitialData(forceSeed = false) {
     TEAM_TASKS.forEach((task, order) => {
       dbPush('teamTasks/upcoming', { ...task, done:false, created:Date.now(), order });
     });
+      // Seed handoff checklists per member
+    SADNAN_HANDOFFS.forEach(h => dbPush(`handoffs/sadnan`, { ...h, done: false, created: Date.now() }));
+    TAZIN_HANDOFFS.forEach(h => dbPush(`handoffs/tazin`, { ...h, done: false, created: Date.now() }));
+    AKIB_HANDOFFS.forEach(h => dbPush(`handoffs/akib`, { ...h, done: false, created: Date.now() }));
+      
     Object.entries(HANDOFF_SEEDS).forEach(([member, items]) => {
       items.forEach((item, order) => {
         dbPush(`handoff/${member}`, { ...item, done:false, created:Date.now(), order });
