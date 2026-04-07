@@ -2499,6 +2499,23 @@ function seedInitialData(forceSeed = false) {
     { text:'Phase 8: Autonomous navigation test', weight:3, member:'team', bibleRef:'T.4', sessionIndex:8 }
   ];
 
+  const HANDOFF_SEEDS = {
+    sadnan: [
+      { kind:'Files', text:'Collect final Zenoh .json5 config bundle from Akib', weight:2 },
+      { kind:'Files', text:'Collect nav2/ekf/slam parameter files from Tazin', weight:2 },
+      { kind:'General', text:'Confirm both Track B and C handoffs are merged before final integration', weight:3 }
+    ],
+    tazin: [
+      { kind:'Files', text:'Deliver nav2_params.yaml, ekf_params.yaml, and slam_params.yaml to Sadnan', weight:2 },
+      { kind:'Test', text:'Share docker build proof for zenoh_router/nav2_slam/rviz2 images', weight:2 },
+      { kind:'General', text:'Notify Sadnan when laptop_bringup.launch.py is integration-ready', weight:1 }
+    ],
+    akib: [
+      { kind:'Files', text:'Deliver Zenoh config files and firmware sources to Sadnan', weight:2 },
+      { kind:'Test', text:'Send arduino-cli compile output showing zero errors', weight:2 },
+      { kind:'General', text:'Confirm safety_node.py and serial_node.py are ready for deployment handoff', weight:1 }
+    ]
+  };
     dbOnce('initialized', val => {
     if (val && !forceSeed) return; // Already seeded
 
@@ -2516,7 +2533,11 @@ function seedInitialData(forceSeed = false) {
     TEAM_TASKS.forEach((task, order) => {
       dbPush('teamTasks/upcoming', { ...task, done:false, created:Date.now(), order });
     });
-    ['sadnan','tazin','akib'].forEach(m => dbPush(`handoff/${m}`, { kind:'General', text:'Share current blockers and next action', done:false, weight:1, created:Date.now() }));
+    Object.entries(HANDOFF_SEEDS).forEach(([member, items]) => {
+      items.forEach((item, order) => {
+        dbPush(`handoff/${member}`, { ...item, done:false, created:Date.now(), order });
+      });
+    });
     dbSet('initialized', true);
   });
 }
