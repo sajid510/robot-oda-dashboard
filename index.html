@@ -1799,6 +1799,7 @@ function renderNotes(notes) {
   addDiv.textContent = '+ Add note';
   addDiv.onclick = addNote;
   list.appendChild(addDiv);
+  renderNoteFiles('notesList', myNoteFilesCache, 'my');
 }
 
 function addNote() {
@@ -1941,6 +1942,7 @@ function renderTeamNotes(notes) {
   addDiv.textContent = '+ Add team note';
   addDiv.onclick = addTeamNote;
   list.appendChild(addDiv);
+  renderNoteFiles('teamNotesList', teamNoteFilesCache, 'team');
 }
 function addTeamNote() {
   dbPush('teamNotes', { title: 'Team Note', text: '', created: Date.now() });
