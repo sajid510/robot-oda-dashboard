@@ -1628,8 +1628,11 @@ function renderTaskList(elId, entries, type, checkable, uncheckable) {
     const editBtn = type === 'upcoming'
       ? `<button class="task-edit-btn" title="Rewrite task" onclick="event.stopPropagation(); rewriteUpcomingTask('${key}')">✎</button>`
       : '';
+    const checkboxHandler = type === 'upcoming'
+      ? `checkUpcomingTask('${key}', this.checked)`
+      : `toggleTask('${type}','${key}', this.checked)`;
     li.innerHTML = `
-      <input type="checkbox" ${task.done?'checked':''} onchange="toggleTask('${type}','${key}',this.checked)">
+      <input type="checkbox" ${task.done?'checked':''} onchange="${checkboxHandler}">
       <span>${task.text || task}</span>
       ${editBtn}
       <span>${type==='handoff' ? `<strong>[${task.kind||'General'}]</strong> ` : ''}${task.text || task}</span>
@@ -1687,16 +1690,7 @@ function rewriteUpcomingTask(key) {
   });
 }
 function toggleTask(type, key, checked) {
-  if (type === 'upcoming') {
-    if (checked) {
-      dbOnce(`tasks/${currentUser}/upcoming/${key}`, val => {
-        setTimeout(() => {
-          dbPush(`tasks/${currentUser}/doneSession`, { ...val, done: true, completedAt: Date.now() });
-          dbRemove(`tasks/${currentUser}/upcoming/${key}`);
-        }, 5000);
-      });
-    }
-  } else if (type === 'doneSession' && !checked) {
+  if (type === 'doneSession' && !checked) {
     dbOnce(`tasks/${currentUser}/doneSession/${key}`, val => {
       dbPush(`tasks/${currentUser}/upcoming`, { ...val, done: false });
       dbRemove(`tasks/${currentUser}/doneSession/${key}`);
