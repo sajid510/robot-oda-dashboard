@@ -2424,7 +2424,7 @@ function leaderAssignHandoff() {
   closeModal('modalAskHandoff');
 }
 
-function resetAllData() {
+function resetAllData(forceSeed = false) {
   const resets = [
     dbRemove('tasks/sadnan'),
     dbRemove('tasks/tazin'),
@@ -2436,7 +2436,7 @@ function resetAllData() {
     dbSet('memberProgress/akib', 0),
     dbSet('initialized', false)
   ];
-  return Promise.all(resets).then(() => seedInitialData(true));
+  return Promise.all(resets).then(() => seedInitialData(forceSeed));
 }
 
 function leaderResetAllTaskData() {
@@ -2444,7 +2444,7 @@ function leaderResetAllTaskData() {
   const pin = prompt('Enter leader dashboard PIN to reset all task data:');
   if (pin !== ADMIN_PIN) { alert('Invalid PIN. Reset canceled.'); return; }
   if (!confirm('Reset ALL task data and progress to zero? This cannot be undone.')) return;
-  resetAllData().then(() => alert('All task data has been reset and reseeded.'));
+  resetAllData(true).then(() => alert('All task data has been reset and reseeded.'));
 }
 
 
