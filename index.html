@@ -1423,9 +1423,10 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
   const strip = document.getElementById('sessionStrip');
   if (!strip) return;
   const sessions = SESSION_DEFINITIONS[currentUser] || [];
-  strip.innerHTML = '';
-  sessions.forEach((sess, idx) => {
-    dbOnce(`tasks/${currentUser}/doneSessions`, doneSessions => {
+    
+  dbOn(`tasks/${currentUser}/doneSessions`, doneSessions => {
+    strip.innerHTML = '';
+    sessions.forEach((sess, idx) => {
       const isDone = doneSessions && Object.values(doneSessions)
         .some(s => s.sessionIndex === idx);
       const pill = document.createElement('span');
@@ -1735,36 +1736,9 @@ function rewriteUpcomingTask(key) {
     setTimeout(() => checkSessionCompletion(val.sessionIndex), 0);
   });
 }
-function checkSessionCompletion() {
-  if (!currentUser) return;
-  dbOnce(`tasks/${currentUser}`, allTasks => {
-    const tasks = allTasks || {};
-    const upcoming = Object.entries(tasks.upcoming || {}).map(([key, val]) => ({ key, ...val }));
-    const doneSessionEntries = Object.entries(tasks.doneSession || {});
-    const sessions = SESSION_DEFINITIONS[currentUser] || [];
-
-    sessions.forEach((session, idx) => {
-      const sessionIndex = idx;
-      const hasPending = upcoming.some(t => Number(t.sessionIndex) === sessionIndex);
-      const completionEntries = doneSessionEntries.filter(([, t]) => t?.isSessionCompletion && Number(t.sessionIndex) === sessionIndex);
-
-      if (!hasPending && completionEntries.length === 0) {
-        dbPush(`tasks/${currentUser}/doneSession`, {
-          text: `${session.name || session.title || `Session ${idx + 1}`} completed`,
-          bibleRef: 'SESSION',
-          isSessionCompletion: true,
-          sessionIndex,
-          order: -1,
-          weight: 1,
-          done: true,
-          member: currentUser,
-          created: Date.now()
-        });
-      }
-      if (hasPending && completionEntries.length) {
-        completionEntries.forEach(([entryKey]) => dbRemove(`tasks/${currentUser}/doneSession/${entryKey}`));
-      }
-    });
+dbOn(`tasks/${currentUser}/doneSessions`, doneSessions => {
+    strip.innerHTML = '';
+    sessions.forEach((sess, idx) => {
   });
 }
 function toggleTask(type, key, checked) {
@@ -1772,12 +1746,12 @@ function toggleTask(type, key, checked) {
     dbOnce(`tasks/${currentUser}/doneSession/${key}`, val => {
       if (val?.isSessionCompletion) {
         dbRemove(`tasks/${currentUser}/doneSession/${key}`);
-        checkSessionCompletion();
+        checkSessionCompletion(val.sessionIndex);
         return;
       }
       dbPush(`tasks/${currentUser}/upcoming`, { ...val, done: false });
       dbRemove(`tasks/${currentUser}/doneSession/${key}`);
-      checkSessionCompletion();
+      checkSessionCompletion(val.sessionIndex);
     });
   } else if (type === 'doneSub' && !checked) {
     dbRemove(`tasks/${currentUser}/doneSub/${key}`);
@@ -2222,12 +2196,13 @@ function updateCharts(allTasks) {
   const upcoming = Object.values(allTasks.upcoming || {});
   const doneSession = Object.values(allTasks.doneSession || {});
 
-  // Chart 1: individual overall (weight-adjusted progress)
-  const doneWeight = doneSession.reduce((sum, task) => sum + Number(task.weight || 1), 0);
-  const totalWeight = doneWeight + upcoming.reduce((sum, task) => sum + Number(task.weight || 1), 0);
-  const safeTotalWeight = totalWeight || 1;
-  const pct1 = Math.round((doneWeight / safeTotalWeight) * 100);
-  setChart('chart1', pct1, `${doneWeight} / ${safeTotalWeight} weight`, 'var(--purple)');
+  // Chart 1: My Overall Progress — weight-adjusted
+  const allUpcoming = Object.values(allTasks.upcoming || {});
+  const allDone = Object.values(allTasks.doneTasks || {});
+  const totalWeight = [...allUpcoming, ...allDone].reduce((s, t) => s + (Number(t.weight) || 1), 0);
+  const doneWeight = allDone.reduce((s, t) => s + (Number(t.weight) || 1), 0);
+  const pct1 = totalWeight > 0 ? Math.round((doneWeight / totalWeight) * 100) : 0;
+  setChart('chart1', pct1, `${allDone.length} / ${allUpcoming.length + allDone.length} tasks`, 'var(--purple)');
 
   // Chart 2: active session weighted progress
   const weightedValue = task => {
