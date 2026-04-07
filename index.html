@@ -2638,6 +2638,7 @@ function t2Boot() {
       T2.apiKey = sharedKey;
       setup.style.display = 'none';
       msgs.style.display = 'flex';
+      t2LoadRecentHistory();
       t2WelcomeMessage();
     });
   } else {
@@ -2649,6 +2650,7 @@ function t2Boot() {
       }
       setup.style.display = 'none';
       msgs.style.display = 'flex';
+      t2LoadRecentHistory();
       t2WelcomeMessage();
     });
   }
@@ -2674,6 +2676,7 @@ async function t2SaveKey() {
   T2.apiKey = key;
   document.getElementById('t2Setup').style.display = 'none';
   document.getElementById('t2Messages').style.display = 'flex';
+    t2LoadRecentHistory();
   t2WelcomeMessage();
 }
   async function t2ValidateKey(key) {
