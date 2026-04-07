@@ -2856,29 +2856,54 @@ function seedInitialData(force = false) {
   };
   dbOnce('initialized', val => {
     const alreadyInitialized = val === true;
-    if (alreadyInitialized && !force) return; // Already seeded
+    dbOnce('tasks', allTasks => {
+      const taskBuckets = allTasks || {};
+      const hasAnyMemberTasks = Object.keys(USER_TASK_SEEDS).some(member => {
+        const memberTasks = taskBuckets[member] || {};
+        return Object.keys(memberTasks.upcoming || {}).length > 0 ||
+          Object.keys(memberTasks.doneTasks || {}).length > 0 ||
+          Object.keys(memberTasks.doneSession || {}).length > 0;
+      });
 
-    Object.entries(USER_TASK_SEEDS).forEach(([member, tasks]) => {
-      tasks.forEach((task, idx) => {
-        dbPush(`tasks/${member}/upcoming`, {
-          ...task,
-          member,
-          done: false,
-          created: Date.now(),
-          order: Number.isInteger(task.order) ? task.order : idx
+      const shouldSeed = force || !alreadyInitialized || !hasAnyMemberTasks;
+      if (!shouldSeed) return;
+
+      Object.entries(USER_TASK_SEEDS).forEach(([member, tasks]) => {
+        const memberTasks = taskBuckets[member] || {};
+        const hasMemberTaskData = Object.keys(memberTasks.upcoming || {}).length > 0 ||
+          Object.keys(memberTasks.doneTasks || {}).length > 0 ||
+          Object.keys(memberTasks.doneSession || {}).length > 0;
+
+        if (hasMemberTaskData && !force) return;
+
+        tasks.forEach((task, idx) => {
+          dbPush(`tasks/${member}/upcoming`, {
+            ...task,
+            member,
+            done: false,
+            created: Date.now(),
+            order: Number.isInteger(task.order) ? task.order : idx
+          });
         });
       });
-    });
 
-    TEAM_TASKS.forEach((task, order) => {
-      dbPush('teamTasks/upcoming', { ...task, done:false, created:Date.now(), order });
-    });
-    
-       // Seed handoff checklists per member
-    Object.entries(HANDOFF_SEEDS).forEach(([member, items]) => {
-      items.forEach((item, order) => {
-        dbPush(`handoff/${member}`, { ...item, done:false, created:Date.now(), order });
+    dbOnce('teamTasks/upcoming', teamUpcoming => {
+        if (force || Object.keys(teamUpcoming || {}).length === 0) {
+          TEAM_TASKS.forEach((task, order) => {
+            dbPush('teamTasks/upcoming', { ...task, done:false, created:Date.now(), order });
+          });
+        }
       });
+      // Seed handoff checklists per member
+      Object.entries(HANDOFF_SEEDS).forEach(([member, items]) => {
+        dbOnce(`handoff/${member}`, handoffItems => {
+          if (!force && Object.keys(handoffItems || {}).length > 0) return;
+          items.forEach((item, order) => {
+            dbPush(`handoff/${member}`, { ...item, done:false, created:Date.now(), order });
+          });
+        });
+      });
+
     });
     dbSet('initialized', true);
   });
