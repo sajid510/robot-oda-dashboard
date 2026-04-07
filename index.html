@@ -2187,17 +2187,38 @@ function leaderDeleteFile(scope, key) {
 function updateCharts(allTasks) {
   const upcoming = Object.values(allTasks.upcoming || {});
   const doneSession = Object.values(allTasks.doneSession || {});
-  const doneSub = Object.values(allTasks.doneSub || {});
 
-  // Chart 1: individual overall (done sessions vs total sessions)
-  const totalSessions = doneSession.length + upcoming.length || 1;
-  const pct1 = Math.round((doneSession.length / totalSessions) * 100);
-  setChart('chart1', pct1, `${doneSession.length} / ${totalSessions} sessions`, 'var(--purple)');
+  // Chart 1: individual overall (weight-adjusted progress)
+  const doneWeight = doneSession.reduce((sum, task) => sum + Number(task.weight || 1), 0);
+  const totalWeight = doneWeight + upcoming.reduce((sum, task) => sum + Number(task.weight || 1), 0);
+  const safeTotalWeight = totalWeight || 1;
+  const pct1 = Math.round((doneWeight / safeTotalWeight) * 100);
+  setChart('chart1', pct1, `${doneWeight} / ${safeTotalWeight} weight`, 'var(--purple)');
 
-  // Chart 2: current phase (done sub-tasks)
-  const totalSub = doneSub.length + Math.max(5, upcoming.length);
-  const pct2 = doneSub.length ? Math.round((doneSub.length / totalSub) * 100) : 0;
-  setChart('chart2', pct2, `${doneSub.length} sub-tasks done`, 'var(--cyan)');
+  // Chart 2: active session weighted progress
+  const weightedValue = task => {
+    const w = Number(task?.weight);
+    return Number.isFinite(w) && w > 0 ? w : 1;
+  };
+  const normalizedSession = task => Number(task?.sessionIndex) || null;
+  const activeUpcomingSessions = upcoming.map(normalizedSession).filter(Boolean);
+  const activeDoneSessions = doneSession
+    .filter(task => !task?.isSessionCompletion)
+    .map(normalizedSession)
+    .filter(Boolean);
+  const activeSessionIndex = activeUpcomingSessions.length
+    ? Math.min(...activeUpcomingSessions)
+    : (activeDoneSessions.length ? Math.max(...activeDoneSessions) : 1);
+
+  const activeSessionUpcoming = upcoming.filter(task => normalizedSession(task) === activeSessionIndex);
+  const activeSessionDone = doneSession.filter(task => (
+    !task?.isSessionCompletion && normalizedSession(task) === activeSessionIndex
+  ));
+  const doneWeight = activeSessionDone.reduce((sum, task) => sum + weightedValue(task), 0);
+  const remainingWeight = activeSessionUpcoming.reduce((sum, task) => sum + weightedValue(task), 0);
+  const totalWeight = doneWeight + remainingWeight;
+  const pct2 = totalWeight > 0 ? Math.round((doneWeight / totalWeight) * 100) : 0;
+  setChart('chart2', pct2, `S${activeSessionIndex} weight ${doneWeight}/${totalWeight}`, 'var(--cyan)');
 
 
   // Update member progress on team page
