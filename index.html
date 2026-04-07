@@ -116,7 +116,13 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .status-dot{width:8px;height:8px;border-radius:50%}
 
 /* ── MAIN GRID ── */
-.dash-grid{display:grid;grid-template-columns:220px 1fr 220px;grid-template-rows:auto auto auto;gap:12px;align-items:start}
+.dash-grid{display:grid;grid-template-columns:500px 1fr 260px;gap:12px;align-items:start}
+.dash-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.span-2{grid-column:1 / -1}
+.check-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:11px;color:var(--text2)}
+.check-item input{accent-color:var(--green);cursor:pointer}
+.check-item.done{background:rgba(16,185,129,.14);color:var(--green2);border:1px solid rgba(16,185,129,.3)}
+.member-status{font-size:10px;color:var(--text3);margin-left:auto}
 .col-left{display:flex;flex-direction:column;gap:10px}
 .col-mid{display:flex;flex-direction:column;gap:10px}
 .col-right{display:flex;flex-direction:column;gap:10px}
@@ -183,7 +189,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .notes-count{font-size:10px;color:var(--text3);margin-top:4px}
 
 /* ── PIE CHARTS ── */
-.charts-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.charts-row{display:none}
 .chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
 .chart-title{font-size:9px;color:var(--text3);letter-spacing:1.5px;margin-bottom:10px}
 .pie-wrap{position:relative;width:80px;height:80px;margin:0 auto 8px}
@@ -397,35 +403,53 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <!-- MAIN GRID -->
   <div class="dash-grid">
 
-    <!-- LEFT COL -->
     <div class="col-left">
-      <!-- Done Section/Sub-section -->
-      <div class="card" style="flex:1">
-        <div class="card-header">
-          <span class="card-title">Done (Section/Sub-section)</span>
-          <span style="font-size:10px;color:var(--green)" id="doneSubCount">0</span>
+     <div class="dash-mini-grid">
+        <div class="chart-card">
+          <div class="chart-title">INDIVIDUAL OVERALL</div>
+          <div class="pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="10"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--purple)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="chart1Circle" style="transition:stroke-dashoffset 1s ease"/></svg><div class="pie-pct" id="chart1Pct" style="color:var(--purple)">0%</div></div>
+          <div class="chart-label" id="chart1Label">0 / 0 sessions</div>
         </div>
-        <div class="card-body compact">
-          <ul class="task-list" id="doneSubList" style="max-height:160px;overflow-y:auto"></ul>
-          <button class="see-more" onclick="openModal('modalDoneSub')">see more &#x25BE;</button>
+        <div class="chart-card">
+          <div class="chart-title">CURRENT PHASE</div>
+          <div class="pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="10"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--cyan)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="chart2Circle" style="transition:stroke-dashoffset 1s ease"/></svg><div class="pie-pct" id="chart2Pct" style="color:var(--cyan)">0%</div></div>
+          <div class="chart-label" id="chart2Label">0 / 0 sub-tasks</div>
         </div>
-      </div>
-      <!-- Notes Widget -->
-      <div class="card notes-widget" onclick="openModal('modalNotes')">
-        <div class="card-header">
-          <span class="card-title">&#128221; My Notes</span>
-          <span style="font-size:10px;color:var(--cyan)" id="notesCount">0 notes</span>
+      <div class="card">
+          <div class="card-header">
+            <span class="card-title">Done Session (standalone)</span>
+            <span style="font-size:10px;color:var(--green)" id="doneSubCount">0</span>
+          </div>
+          <div class="card-body compact">
+            <ul class="task-list" id="doneSubList" style="max-height:160px;overflow-y:auto"></ul>
+            <button class="see-more" onclick="openModal('modalDoneSub')">see more &#x25BE;</button>
+          </div>
         </div>
-        <div class="card-body compact">
-          <div class="notes-preview" id="notesPreview">Click to open your notes...</div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Done Tasks</span>
+            <span style="font-size:10px;color:var(--green)" id="doneSessionCount">0</span>
+          </div>
+          <div class="card-body compact">
+            <ul class="task-list" id="doneSessionList" style="max-height:160px;overflow-y:auto"></ul>
+            <button class="see-more" onclick="openModal('modalDoneSession')">see more &#x25BE;</button>
+          </div>
+        </div>
+
+        <div class="card notes-widget span-2" onclick="openModal('modalNotes')">
+          <div class="card-header">
+            <span class="card-title">&#128221; My Notes</span>
+            <span style="font-size:10px;color:var(--cyan)" id="notesCount">0 notes</span>
+          </div>
+          <div class="card-body compact">
+            <div class="notes-preview" id="notesPreview">Click to open your notes...</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- MIDDLE COL -->
     <div class="col-mid">
-      <!-- Issue feed -->
-      <div class="card">
+      <div class="card" style="max-width:560px">
         <div class="card-header">
           <span class="card-title">&#128165; Current Issues</span>
           <span style="font-size:10px;color:var(--red)" id="issueCount">0 open</span>
@@ -438,9 +462,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       </div>
     </div>
 
-    <!-- RIGHT COL -->
     <div class="col-right">
-      <!-- Upcoming Tasks -->
       <div class="card">
         <div class="card-header">
           <span class="card-title">Upcoming Tasks</span>
@@ -458,49 +480,21 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
           </div>
         </div>
       </div>
-      <!-- Done Session -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Done (Session)</span>
-          <span style="font-size:10px;color:var(--green)" id="doneSessionCount">0</span>
+          <span class="card-title">Handoff Checklist</span>
+          <span style="font-size:10px;color:var(--green)" id="handoffCount">0</span>
         </div>
         <div class="card-body compact">
-          <ul class="task-list" id="doneSessionList" style="max-height:120px;overflow-y:auto"></ul>
-          <button class="see-more" onclick="openModal('modalDoneSession')">see more &#x25BE;</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Security</span>
-        </div>
-        <div class="card-body compact">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Set your own 4-digit login PIN.</div>
-          <div style="font-size:10px;color:var(--text3)">Use the top bar button to change your PIN quickly.</div>
+          <ul class="task-list" id="handoffList" style="max-height:140px;overflow-y:auto"></ul>
+          <button class="see-more" onclick="openModal('modalHandoff')">see more &#x25BE;</button>
         </div>
       </div>
     </div>
 
   </div><!-- /dash-grid -->
 
-  <!-- CHARTS ROW -->
-  <div class="charts-row">
-    <div class="chart-card">
-      <div class="chart-title">INDIVIDUAL OVERALL</div>
-      <div class="pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="10"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--purple)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="chart1Circle" style="transition:stroke-dashoffset 1s ease"/></svg><div class="pie-pct" id="chart1Pct" style="color:var(--purple)">0%</div></div>
-      <div class="chart-label" id="chart1Label">0 / 0 sessions</div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">CURRENT PHASE</div>
-      <div class="pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="10"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--cyan)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="chart2Circle" style="transition:stroke-dashoffset 1s ease"/></svg><div class="pie-pct" id="chart2Pct" style="color:var(--cyan)">0%</div></div>
-      <div class="chart-label" id="chart2Label">0 / 0 sub-tasks</div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">PROJECT SCOPE</div>
-      <div class="pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg3)" stroke-width="10"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--green)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="chart3Circle" style="transition:stroke-dashoffset 1s ease"/></svg><div class="pie-pct" id="chart3Pct" style="color:var(--green)">0%</div></div>
-      <div class="chart-label" id="chart3Label">vs full project</div>
-    </div>
-  </div>
-
+  
 </div><!-- /dash-wrap -->
 </div><!-- /pageDash -->
 
@@ -528,7 +522,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <div class="member-card">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="width:8px;height:8px;border-radius:50%;background:var(--sadnan);display:inline-block"></span>
-        <span class="member-card-name">Sadnan</span>
+        <span class="member-card-name">Sadnan</span><span class="member-status" id="status-sadnan">working</span>
       </div>
       <div class="member-card-role">Track A — Hardware + Embedded + Integration</div>
       <div class="progress-bar"><div class="progress-fill" id="prog-sadnan" style="background:var(--sadnan);width:0%"></div></div>
@@ -537,7 +531,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <div class="member-card">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="width:8px;height:8px;border-radius:50%;background:var(--tazin);display:inline-block"></span>
-        <span class="member-card-name">Tazin</span>
+        <span class="member-card-name">Tazin</span><span class="member-status" id="status-tazin">working</span>
       </div>
       <div class="member-card-role">Track B — ROS 2 + Nav2 + Laptop Stack</div>
       <div class="progress-bar"><div class="progress-fill" id="prog-tazin" style="background:var(--tazin);width:0%"></div></div>
@@ -546,7 +540,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <div class="member-card">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="width:8px;height:8px;border-radius:50%;background:var(--akib);display:inline-block"></span>
-        <span class="member-card-name">Akib</span>
+        <span class="member-card-name">Akib</span><span class="member-status" id="status-akib">working</span>
       </div>
       <div class="member-card-role">Track C — Firmware + Safety + Network</div>
       <div class="progress-bar"><div class="progress-fill" id="prog-akib" style="background:var(--akib);width:0%"></div></div>
@@ -571,16 +565,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
         </div>
       </div>
 
-      <!-- Solved Issues -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">&#9989; Solved Issues</span>
-          <span style="font-size:10px;color:var(--green)" id="solvedCount">0 solved</span>
-        </div>
-        <div class="card-body" style="max-height:200px;overflow-y:auto">
-          <div id="solvedFeed"><div class="no-issues" style="padding:16px"><div class="icon">&#128218;</div>No solved issues yet</div></div>
-        </div>
-      </div>
 
       <!-- Team Notes -->
       <div class="card notes-widget" onclick="openModal('modalTeamNotes')">
@@ -592,13 +576,23 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
           <div class="notes-preview" id="teamNotesPreview">Implementation Bible v4.0 — robot_oda. Click to open team knowledge base...</div>
         </div>
       </div>
+      <!-- Solved Issues -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">&#9989; Solved Issues</span>
+          <span style="font-size:10px;color:var(--green)" id="solvedCount">0 solved</span>
+        </div>
+        <div class="card-body" style="max-height:200px;overflow-y:auto">
+          <div id="solvedFeed"><div class="no-issues" style="padding:16px"><div class="icon">&#128218;</div>No solved issues yet</div></div>
+        </div>
+      </div>
     </div>
 
     <div class="team-side">
-      <!-- Team Upcoming Tasks -->
+      <!-- Upcoming Section Tasks -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Team Upcoming</span>
+          <span class="card-title">Upcoming Section</span>
           <span style="font-size:10px;color:var(--purple)" id="teamUpcomingCount">0</span>
         </div>
         <div class="card-body compact">
@@ -606,15 +600,25 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
           <button class="see-more" onclick="openModal('modalTeamUpcoming')">see more &#x25BE;</button>
         </div>
       </div>
-      <!-- Team Done -->
+      <!-- Done Section -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Team Done</span>
+          <span class="card-title">Done Section</span>
           <span style="font-size:10px;color:var(--green)" id="teamDoneCount">0</span>
         </div>
         <div class="card-body compact">
           <ul class="task-list" id="teamDoneList" style="max-height:140px;overflow-y:auto"></ul>
           <button class="see-more" onclick="openModal('modalTeamDone')">see more &#x25BE;</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Done Phase</span>
+          <span style="font-size:10px;color:var(--green)" id="teamDonePhaseCount">0</span>
+        </div>
+        <div class="card-body compact">
+          <ul class="task-list" id="teamDonePhaseList" style="max-height:140px;overflow-y:auto"></ul>
+          <button class="see-more" onclick="openModal('modalTeamDonePhase')">see more &#x25BE;</button>
         </div>
       </div>
     </div>
@@ -647,6 +651,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div class="leader-widget-icon">&#43;</div>
       <div class="leader-widget-title">Add Tasks</div>
       <div class="leader-widget-desc">Add upcoming or session tasks to any member</div>
+    </div>
+    <div class="leader-widget" onclick="openModal('modalAskHandoff');loadHandoffManager()">
+      <div class="leader-widget-icon">&#128257;</div>
+      <div class="leader-widget-title">Ask Handoff</div>
+      <div class="leader-widget-desc">Assign or delete handoff checklist items</div>
     </div>
     <div class="leader-widget" onclick="openModal('modalMemberPins');loadMemberPins();">
       <div class="leader-widget-icon">&#128273;</div>
@@ -765,7 +774,13 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 <div class="overlay" id="overlayPostError">
 <div class="modal wide">
   <button class="modal-close" onclick="closeModal('overlayPostError')">&times;</button>
-  <div class="modal-title">&#128165; Post an Error / Issue</div>
+  <div class="modal-title">&#128165; Post an Error / Issue</div><div class="form-group">
+    <label class="form-label">Source</label>
+    <select class="form-select" id="errSource" onchange="updateErrSectionOptions()">
+      <option value="bible">According to Bible</option>
+      <option value="standalone">According to Standalone Plan</option>
+    </select>
+  </div>
   <div class="form-group">
     <label class="form-label">Section / Phase / Session</label>
     <select class="form-select" id="errSection">
@@ -803,8 +818,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <textarea class="form-textarea" id="errBody" placeholder="Describe the error, paste exact error messages, logs, or share source links..." style="min-height:100px"></textarea>
   </div>
   <div class="form-group">
-    <label class="form-label">Solutions Already Tried</label>
-    <textarea class="form-textarea" id="errTried" placeholder="What have you already tried to fix this?..." style="min-height:60px"></textarea>
+     <label class="form-label">Solutions Already Tried (one per line)</label>
+    <textarea class="form-textarea" id="errTried" placeholder="- Restarted service
+- Rebuilt container
+- Reflashed firmware" style="min-height:80px"></textarea>
   </div>
   <div class="modal-footer">
     <button class="btn-secondary" onclick="closeModal('overlayPostError')">Cancel</button>
@@ -830,7 +847,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 <div class="overlay" id="modalDoneSession">
 <div class="modal">
   <button class="modal-close" onclick="closeModal('modalDoneSession')">&times;</button>
-  <div class="modal-title">&#9989; Done (Session) — All</div>
+  <div class="modal-title">&#9989; Done Tasks — All</div>
   <ul class="task-list" id="doneSessionListFull" style="max-height:400px;overflow-y:auto"></ul>
 </div>
 </div>
@@ -839,7 +856,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 <div class="overlay" id="modalDoneSub">
 <div class="modal">
   <button class="modal-close" onclick="closeModal('modalDoneSub')">&times;</button>
-  <div class="modal-title">&#9989; Done (Section/Sub-section) — All</div>
+  <div class="modal-title">&#9989; Done Session (standalone) — All</div>
   <ul class="task-list" id="doneSubListFull" style="max-height:400px;overflow-y:auto"></ul>
   <div style="display:flex;gap:6px;margin-top:12px">
     <input class="form-input" id="newSubTaskInput" placeholder="Add completed sub-task...">
@@ -918,24 +935,42 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 </div>
 </div>
   
-<!-- Team Upcoming Modal -->
+<!-- Upcoming Section Modal -->
 <div class="overlay" id="modalTeamUpcoming">
 <div class="modal">
   <button class="modal-close" onclick="closeModal('modalTeamUpcoming')">&times;</button>
-  <div class="modal-title">&#128197; Team Upcoming Tasks</div>
+  <div class="modal-title">&#128197; Upcoming Section Tasks</div>
   <ul class="task-list" id="teamUpcomingListFull" style="max-height:400px;overflow-y:auto"></ul>
 </div>
 </div>
 
-<!-- Team Done Modal -->
+<!-- Done Section Modal -->
 <div class="overlay" id="modalTeamDone">
 <div class="modal">
   <button class="modal-close" onclick="closeModal('modalTeamDone')">&times;</button>
-  <div class="modal-title">&#9989; Team Done Tasks</div>
+  <div class="modal-title">&#9989; Done Section Tasks</div>
   <ul class="task-list" id="teamDoneListFull" style="max-height:400px;overflow-y:auto"></ul>
 </div>
 </div>
+<!-- Team Done Phase Modal -->
+<div class="overlay" id="modalTeamDonePhase">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modalTeamDonePhase')">&times;</button>
+  <div class="modal-title">&#9989; Done Phase Tasks</div>
+  <ul class="task-list" id="teamDonePhaseListFull" style="max-height:400px;overflow-y:auto"></ul>
+</div>
+</div>
 
+<!-- Handoff Modal -->
+<div class="overlay" id="modalHandoff">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modalHandoff')">&times;</button>
+  <div class="modal-title">&#128257; Handoff Checklist</div>
+  <ul class="task-list" id="handoffListFull" style="max-height:400px;overflow-y:auto"></ul>
+</div>
+</div>
+
+  
 <!-- Leader: Team Direction -->
 <div class="overlay" id="modalTeamDirection">
 <div class="modal sm">
@@ -1019,7 +1054,22 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
 </div>
 </div>
-
+<!-- Leader: Ask Handoff -->
+<div class="overlay" id="modalAskHandoff">
+<div class="modal sm">
+  <button class="modal-close" onclick="closeModal('modalAskHandoff')">&times;</button>
+  <div class="modal-title">&#128257; Ask Handoff</div>
+  <div class="form-group"><label class="form-label">Member</label><select class="form-select" id="handoffMember" onchange="loadHandoffManager()"><option value="sadnan">Sadnan</option><option value="tazin">Tazin</option><option value="akib">Akib</option></select></div>
+  <div class="form-group"><label class="form-label">Action</label><select class="form-select" id="handoffAction" onchange="toggleHandoffAction()"><option value="add">Add New</option><option value="delete">Delete Handoff</option></select></div>
+  <div id="handoffAddFields">
+    <div class="form-group"><label class="form-label">Handoff Type</label><select class="form-select" id="handoffType"><option>Files</option><option>Test</option><option>Research</option><option>Writing</option><option>General</option><option>Other</option></select></div>
+    <div class="form-group"><label class="form-label">Handoff Description</label><input class="form-input" id="handoffDesc" placeholder="Describe the handoff..."></div>
+  </div>
+  <div id="handoffDeleteFields" style="display:none"><div class="leader-action-list" id="handoffManageList"></div></div>
+  <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modalAskHandoff')">Cancel</button><button class="btn-primary" onclick="leaderAssignHandoff()">Assign</button></div>
+</div>
+</div>
+  
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -1224,7 +1274,7 @@ function logout() {
 function buildNav() {
   const nav = document.getElementById('topNav');
   nav.innerHTML = '';
-  const pages = ['My Dashboard','Team Update','Post an Error!','T2 Chat'];
+  const pages = ['My Dashboard','Team Update','Post an Error!'];
   if (currentUser === 'sadnan') pages.push('Leader Control');
   pages.forEach(p => {
     const b = document.createElement('button');
@@ -1246,13 +1296,13 @@ function navClick(label) {
   if (label === 'My Dashboard') { showPage('pageDash'); setActiveNav(label); }
   else if (label === 'Team Update') { showPage('pageTeam'); setActiveNav(label); loadTeamPage(); }
   else if (label === 'Post an Error!') { openModal('overlayPostError'); }
-     else if (label === 'T2 Chat') { setActiveNav(label); t2OpenFromTopbar(); }
   else if (label === 'Leader Control') { showLeaderPinPrompt(); }
 }
 
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  if (typeof t2SetFullscreen === 'function' && typeof T2 !== 'undefined' && T2.fullscreen) t2SetFullscreen(false);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1387,7 +1437,8 @@ function initDashboard() {
   dbOn(`tasks/${u}/doneSub`, tasks => {
     renderDoneSub(tasks || {});
   });
-
+dbOn(`handoff/${u}`, items => { renderHandoff(items || {}); });
+  
   // Issues (all users see all issues)
   dbOn('issues', issues => {
     allIssuesCache = issues || {};
@@ -1483,6 +1534,13 @@ function renderDoneSub(tasks) {
   renderTaskList('doneSubListFull', entries, 'doneSub', false, true);
 }
 
+  function renderHandoff(tasks) {
+  const entries = Object.entries(tasks || {});
+  document.getElementById('handoffCount').textContent = entries.length;
+  renderTaskList('handoffList', entries.slice(0,5), 'handoff', true, true);
+  renderTaskList('handoffListFull', entries, 'handoff', true, true);
+}
+
 function renderTaskList(elId, entries, type, checkable, uncheckable) {
   const el = document.getElementById(elId);
   if (!el) return;
@@ -1528,8 +1586,9 @@ function renderTaskList(elId, entries, type, checkable, uncheckable) {
       <input type="checkbox" ${task.done?'checked':''} onchange="toggleTask('${type}','${key}',this.checked)">
       <span>${task.text || task}</span>
       ${editBtn}
-      <span class="weight-badge">w${w}</span>
+      <span>${type==='handoff' ? `<strong>[${task.kind||'General'}]</strong> ` : ''}${task.text || task}</span>
     `;
+    if (type==='handoff' && task.done) li.classList.add('done');
     el.appendChild(li);
   });
 }
@@ -1598,6 +1657,8 @@ function toggleTask(type, key, checked) {
     });
   } else if (type === 'doneSub' && !checked) {
     dbRemove(`tasks/${currentUser}/doneSub/${key}`);
+    } else if (type === 'handoff') {
+    dbUpdate(`handoff/${currentUser}/${key}`, { done: checked });
   }
 }
 
@@ -1606,7 +1667,25 @@ function toggleTask(type, key, checked) {
 // ═══════════════════════════════════════════════════════════════════
 const MEMBER_COLORS = { sadnan:'var(--sadnan)', tazin:'var(--tazin)', akib:'var(--akib)' };
 
+  const STANDALONE_SESSIONS = {
+  sadnan:['Session 1 — Hardware','Session 2 — Wiring','Session 3 — Firmware','Session 4 — Sensors','Session 5 — Validation','Session 6 — Integration'],
+  tazin:['Session 1 — Containers','Session 2 — ROS Setup','Session 3 — Nav Stack','Session 4 — Simulation','Session 5 — Zenoh'],
+  akib:['Session 1 — Network','Session 2 — Protocol','Session 3 — Firmware','Session 4 — Safety','Session 5 — Validation']
+};
+let bibleSectionOptions = '';
+function updateErrSectionOptions(){
+  const src=document.getElementById('errSource').value;
+  const sel=document.getElementById('errSection');
+  if (!bibleSectionOptions) bibleSectionOptions = sel.innerHTML;
+  if(src==='standalone'){
+    sel.innerHTML='<option value="">-- Select standalone session --</option>' + STANDALONE_SESSIONS[currentUser].map(v=>`<option>${v}</option>`).join('');
+  } else {
+    sel.innerHTML = bibleSectionOptions;
+  }
+}
+  
 function postIssue() {
+  const source = document.getElementById('errSource').value;
   const section = document.getElementById('errSection').value || document.getElementById('errSectionCustom').value;
   const body = document.getElementById('errBody').value.trim();
   const tried = document.getElementById('errTried').value.trim();
@@ -1614,6 +1693,7 @@ function postIssue() {
   const issue = {
     author: currentUser,
     section: section || 'General',
+    source,
     body, tried,
     comments: {},
     solved: false,
@@ -1691,7 +1771,7 @@ function buildIssuePost(key, issue) {
       <div class="post-time">${time}</div>
     </div>
     <div class="post-body">${escHtml(issue.body)}</div>
-    ${issue.tried ? `<div class="post-tried"><div class="post-tried-label">Tried so far:</div>${escHtml(issue.tried)}</div>` : ''}
+     ${issue.tried ? `<div class="post-tried"><div class="post-tried-label">Tried so far:</div><ul style="margin-left:14px">${issue.tried.split(/\n+/).filter(Boolean).map(t=>`<li>${escHtml(t.replace(/^[-*]\s*/,''))}</li>`).join('')}</ul></div>` : ''}
     <div class="comment-section">
       ${commentsHtml}
       ${currentUser !== issue.author ? `
@@ -1941,7 +2021,8 @@ function renderTeamNotes(notes) {
       <button class="note-open-btn" onclick="openNoteViewer('${escAttr(note.title||'Team Note')}','${escAttr(note.text||'')}')">
         <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--cyan2)">${escHtml(note.title||'Team Note')}</div>
       </button>
-      <textarea style="width:100%;background:transparent;border:none;color:var(--text2);font-size:11px;resize:none;outline:none;min-height:80px;font-family:inherit;line-height:1.6" onblur="saveTeamNote('${key}',this.parentElement)">${escHtml(note.text)}</textarea>`;
+      <textarea style="width:100%;background:transparent;border:none;color:var(--text2);font-size:11px;resize:none;outline:none;min-height:80px;font-family:inherit;line-height:1.6" onblur="saveTeamNote('${key}',this.parentElement)">${escHtml(note.text)}</textarea>
+      ${note.title==='Implementation Bible v4.0' ? '' : `<button onclick="deleteTeamNote('${key}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="Delete">&times;</button>`}`;
     list.appendChild(div);
   });
   const addDiv = document.createElement('div');
@@ -1957,6 +2038,12 @@ function addTeamNote() {
 function saveTeamNote(key, div) {
   const ta = div.querySelector('textarea');
   if (ta) dbUpdate(`teamNotes/${key}`, { text: ta.value });
+}
+  function deleteTeamNote(key) {
+  dbOnce(`teamNotes/${key}`, n => {
+    if (!n || n.title === 'Implementation Bible v4.0') return;
+    if (confirm('Delete this team note?')) dbRemove(`teamNotes/${key}`);
+  });
 }
 function leaderUploadFile(scope, file) {
   if (currentUser !== 'sadnan' || !file) return;
@@ -2020,11 +2107,6 @@ function updateCharts(allTasks) {
   const pct2 = doneSub.length ? Math.round((doneSub.length / totalSub) * 100) : 0;
   setChart('chart2', pct2, `${doneSub.length} sub-tasks done`, 'var(--cyan)');
 
-  // Chart 3: project scope (weight-adjusted)
-  const totalWeight = [...doneSession, ...upcoming].reduce((s,t)=>s+(t.weight||1),0) || 1;
-  const doneWeight = doneSession.reduce((s,t)=>s+(t.weight||1),0);
-  const pct3 = Math.round((doneWeight / totalWeight) * 100);
-  setChart('chart3', pct3, `${pct3}% of project scope`, 'var(--green)');
 
   // Update member progress on team page
   updateTeamMemberProgress(currentUser, pct1);
@@ -2058,6 +2140,7 @@ function loadTeamPage() {
 
   // Listen to member progress
   ['sadnan','tazin','akib'].forEach(m => {
+    dbOn(`status/${m}`, st => { const el=document.getElementById('status-'+m); if(el) el.textContent = st || 'working'; });
     dbOn(`memberProgress/${m}`, pct => {
       const p = pct || 0;
       const bar = document.getElementById('prog-' + m);
@@ -2103,6 +2186,12 @@ function loadTeamTasks() {
     document.getElementById('teamDoneCount').textContent = entries.length;
     renderTeamTaskList('teamDoneList', entries.slice(0,4));
     renderTeamTaskList('teamDoneListFull', entries);
+  });
+  dbOn('teamTasks/donePhase', tasks => {
+    const entries = Object.entries(tasks || {});
+    document.getElementById('teamDonePhaseCount').textContent = entries.length;
+    renderTeamTaskList('teamDonePhaseList', entries.slice(0,4));
+    renderTeamTaskList('teamDonePhaseListFull', entries);
   });
 }
 
@@ -2186,7 +2275,34 @@ function leaderAddTask() {
   document.getElementById('taskDesc').value = '';
   closeModal('modalAddTasks');
 }
-  function leaderResetAllTaskData() {
+  function toggleHandoffAction() {
+  const action=document.getElementById('handoffAction').value;
+  document.getElementById('handoffAddFields').style.display = action==='add' ? 'block' : 'none';
+  document.getElementById('handoffDeleteFields').style.display = action==='delete' ? 'block' : 'none';
+  if(action==='delete') loadHandoffManager();
+}
+function loadHandoffManager() {
+  const m=document.getElementById('handoffMember')?.value || 'sadnan';
+  dbOnce(`handoff/${m}`, items => {
+    const list=document.getElementById('handoffManageList'); if(!list) return;
+    const entries=Object.entries(items||{});
+    list.innerHTML = entries.length ? entries.map(([k,v])=>`<div class="leader-action-item"><div class="leader-action-text">[${v.kind||'General'}] ${escHtml(v.text||'')}</div><button class="btn-sm danger" onclick="dbRemove('handoff/${m}/${k}')">Delete</button></div>`).join('') : '<div style="font-size:11px;color:var(--text3)">No handoff items.</div>';
+  });
+}
+function leaderAssignHandoff() {
+  const member=document.getElementById('handoffMember').value;
+  const action=document.getElementById('handoffAction').value;
+  if(action==='add'){
+    const kind=document.getElementById('handoffType').value;
+    const text=document.getElementById('handoffDesc').value.trim();
+    if(!text) return;
+    dbPush(`handoff/${member}`,{kind,text,done:false,weight:1,created:Date.now()});
+    document.getElementById('handoffDesc').value='';
+  }
+  closeModal('modalAskHandoff');
+}
+
+function leaderResetAllTaskData() {
   if (currentUser !== 'sadnan') return;
   const pin = prompt('Enter leader dashboard PIN to reset all task data:');
   if (pin !== ADMIN_PIN) { alert('Invalid PIN. Reset canceled.'); return; }
@@ -2271,6 +2387,7 @@ function seedInitialData() {
     ];
     TEAM_TASKS.forEach(t => dbPush('teamTasks/upcoming', { ...t, done:false, created:Date.now() }));
 
+    ['sadnan','tazin','akib'].forEach(m => dbPush(`handoff/${m}`, { kind:'General', text:'Share current blockers and next action', done:false, weight:1, created:Date.now() }));
     dbSet('initialized', true);
   });
 }
@@ -2718,8 +2835,7 @@ max-height: calc(100dvh - 154px);  background: #0f1525;
       <div class="t2-name">T2</div>
       <div class="t2-role">AI PROJECT COORDINATOR &nbsp;&#x2022;&nbsp; robot_oda</div>
     </div>
-    <button class="t2-key-reset" onclick="t2ResetKey()" title="Reset API key">&#128273;</button>
-<button class="t2-close" onclick="t2ClosePanel()">&#x2715;</button>  </div>
+    <button class="t2-close" onclick="t2ClosePanel()" title="Close">&#x2715;</button><button class="t2-close" id="t2FsBtn" onclick="t2ToggleFullscreen()" title="Full screen">&#9974;</button><button class="t2-key-reset" onclick="t2ResetKey()" title="Reset API key">&#128273;</button>  </div>
 
   <!-- Context bar -->
   <div class="t2-context-bar" id="t2ContextBar">
@@ -3038,6 +3154,12 @@ function t2Toggle() {
   T2.fullscreen = !!enabled;
   panel.classList.toggle('fullscreen', T2.fullscreen);
   if (bubble) bubble.style.display = T2.fullscreen ? 'none' : (currentUser ? 'flex' : 'none');
+}
+  function t2ToggleFullscreen() {
+  t2SetFullscreen(!T2.fullscreen);
+  const b=document.getElementById('t2FsBtn');
+  if (b) b.innerHTML = T2.fullscreen ? '&#9472;' : '&#9974;';
+  if (b) b.title = T2.fullscreen ? 'Minimize' : 'Full screen';
 }
 function t2OpenFromTopbar() {
   if (!T2.open) t2Toggle();
