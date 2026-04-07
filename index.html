@@ -1030,13 +1030,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     </select>
   </div>
   <div class="form-group">
-    <label class="form-label">Task Type</label>
-    <select class="form-select" id="taskType">
-      <option value="upcoming">Upcoming Task (Session level)</option>
-      <option value="sub">Sub-section Task (Done tracker)</option>
-    </select>
-  </div>
-  <div class="form-group">
     <label class="form-label">Task Description</label>
     <input class="form-input" id="taskDesc" placeholder="Describe the task...">
   </div>
@@ -2370,7 +2363,6 @@ function saveMemberDirection() {
 
 function leaderAddTask() {
   const member = document.getElementById('taskMember').value;
-  const type = document.getElementById('taskType').value;
   const text = document.getElementById('taskDesc').value.trim();
   const weight = parseInt(document.getElementById('taskWeight').value);
   if (!text) return;
@@ -2380,8 +2372,7 @@ function leaderAddTask() {
   if (member === 'team') {
     dbPush('teamTasks/upcoming', task);
   } else {
-    const path = type === 'upcoming' ? `tasks/${member}/upcoming` : `tasks/${member}/doneSub`;
-    dbPush(path, task);
+    dbPush(`tasks/${member}/upcoming`, task);
     // Also add to team upcoming for visibility
     dbPush('teamTasks/upcoming', task);
   }
