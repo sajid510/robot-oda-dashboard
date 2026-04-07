@@ -2429,7 +2429,7 @@ function leaderAssignHandoff() {
   closeModal('modalAskHandoff');
 }
 
-function resetAllData(forceSeed = false) {
+function resetAllData() {
   const resets = [
     dbRemove('tasks/sadnan'),
     dbRemove('tasks/tazin'),
@@ -2442,7 +2442,7 @@ function resetAllData(forceSeed = false) {
     dbSet('memberProgress/akib', 0),
     dbSet('initialized', false)
   ];
-  return Promise.all(resets).then(() => seedInitialData(forceSeed));
+  return Promise.all(resets).then(() => seedInitialData(true));
 }
 
 function leaderResetAllTaskData() {
@@ -2450,14 +2450,14 @@ function leaderResetAllTaskData() {
   const pin = prompt('Enter leader dashboard PIN to reset all task data:');
   if (pin !== ADMIN_PIN) { alert('Invalid PIN. Reset canceled.'); return; }
   if (!confirm('Reset ALL task data and progress to zero? This cannot be undone.')) return;
-  resetAllData(true).then(() => alert('All task data has been reset and reseeded.'));
+  resetAllData().then(() => alert('All task data has been reset and reseeded.'));
 }
 
 
 // ═══════════════════════════════════════════════════════════════════
 // SEED INITIAL TASKS (called once if no data)
 // ═══════════════════════════════════════════════════════════════════
-function seedInitialData(forceSeed = false) {
+function seedInitialData(force = false) {
   const SADNAN_TASKS = [
 
   // ── Session 1 — Hardware Bench Work ──────────────────────────
@@ -2848,7 +2848,7 @@ function seedInitialData(forceSeed = false) {
 ];
   };
     dbOnce('initialized', val => {
-    if (val && !forceSeed) return; // Already seeded
+    if (val && !force) return; // Already seeded
 
     Object.entries(USER_TASK_SEEDS).forEach(([member, tasks]) => {
       tasks.forEach((task, order) => {
