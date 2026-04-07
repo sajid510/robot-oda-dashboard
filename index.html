@@ -138,6 +138,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .task-list{list-style:none;display:flex;flex-direction:column;gap:4px}
 .task-item{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .15s;font-size:11px;color:var(--text2)}
 .task-item:hover{background:rgba(255,255,255,.04)}
+  .task-item.done-style{opacity:.6}
 .task-item input[type=checkbox]{accent-color:var(--purple);cursor:pointer;flex-shrink:0;margin-top:1px}
 .task-item span{line-height:1.4}
 .task-item .weight-badge{font-size:9px;background:rgba(124,106,247,.15);color:var(--purple2);padding:1px 5px;border-radius:4px;flex-shrink:0;margin-left:auto}
@@ -198,9 +199,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .chart-label{font-size:10px;color:var(--text2)}
 
 /* ── SESSION STRIP ── */
-.session-strip{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0}
-.session-pill{font-size:10px;background:rgba(124,106,247,.15);border:1px solid rgba(124,106,247,.4);border-radius:999px;padding:4px 10px;color:var(--purple);letter-spacing:.4px;cursor:pointer;transition:all .2s}
-.session-pill:hover{background:rgba(124,106,247,.25);border-color:var(--purple2);color:#fff}
+.session-strip{display:flex;flex-wrap:wrap;gap:7px;padding:8px 0 4px}
+.session-pill{font-size:11px;background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.3);border-radius:20px;padding:4px 14px;color:var(--purple2);cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.session-pill:hover{background:rgba(124,106,247,.22);border-color:var(--purple)}
+  .session-pill.done{background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.45);color:var(--green2)}
+.session-pill.done{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--green2)}
 .session-meta{display:grid;gap:8px}
 .session-meta .line{font-size:12px;color:var(--text2)}
 .session-meta .label{color:var(--text3);font-size:11px;letter-spacing:.5px}
@@ -856,13 +859,13 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 </div>
 </div>
   
-  <!-- Session Modal -->
-<div class="overlay" id="modalSession">
-<div class="modal sm">
-  <button class="modal-close" onclick="closeModal('modalSession')">&times;</button>
-  <div class="modal-title" id="sessionModalTitle">📘 Session</div>
-  <div class="session-meta" id="sessionModalMeta"></div>
-</div>
+  <!-- Session Task View Modal -->
+<div class="overlay" id="modalSessionView">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalSessionView')">&times;</button>
+    <div class="modal-title" id="sessionModalTitle">Session Tasks</div>
+    <ul class="task-list" id="sessionModalList" style="max-height:420px;overflow-y:auto"></ul>
+  </div>
 </div>
 
 <!-- Notes Modal -->
@@ -1420,22 +1423,60 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
   const strip = document.getElementById('sessionStrip');
   if (!strip) return;
   const sessions = SESSION_DEFINITIONS[currentUser] || [];
-  if (!sessions.length) {
-    strip.innerHTML = '<span style="font-size:11px;color:var(--text3)">No sessions defined yet</span>';
-    return;
-  }
-  strip.innerHTML = sessions.map(s => `<button class="session-pill" onclick="openSessionModal('${s.id}')">${escHtml(s.title)}</button>`).join('');
+  strip.innerHTML = '';
+  sessions.forEach((sess, idx) => {
+    dbOnce(`tasks/${currentUser}/doneSessions`, doneSessions => {
+      const isDone = doneSessions && Object.values(doneSessions)
+        .some(s => s.sessionIndex === idx);
+      const pill = document.createElement('span');
+      pill.className = 'session-pill' + (isDone ? ' done' : '');
+      pill.textContent = sess.name || sess.title || `Session ${idx + 1}`;
+      pill.onclick = () => openSessionModal(idx);
+      strip.appendChild(pill);
+    });
+  });
 }
-function openSessionModal(sessionId) {
-  const sessions = SESSION_DEFINITIONS[currentUser] || [];
-  const session = sessions.find(s => s.id === sessionId);
-  if (!session) return;
-  document.getElementById('sessionModalTitle').textContent = `📘 ${session.title}`;
-  document.getElementById('sessionModalMeta').innerHTML = `
-    <div class="line"><span class="label">Focus:</span> ${escHtml(session.focus)}</div>
-    <div class="line"><span class="label">Expected Output:</span> ${escHtml(session.output)}</div>
-  `;
-  openModal('modalSession');
+function openSessionModal(sessionIndex) {
+  const sess = (SESSION_DEFINITIONS[currentUser] || [])[sessionIndex];
+  if (!sess) return;
+  document.getElementById('sessionModalTitle').textContent = sess.name || sess.title || 'Session Tasks';
+  const list = document.getElementById('sessionModalList');
+  list.innerHTML = '';
+
+  Promise.all([
+    new Promise(r => dbOnce(`tasks/${currentUser}/upcoming`, v => r(v || {}))),
+    new Promise(r => dbOnce(`tasks/${currentUser}/doneTasks`, v => r(v || {}))),
+    new Promise(r => dbOnce(`tasks/${currentUser}/doneSession`, v => r(v || {})))
+  ]).then(([upcoming, doneTasks, doneSession]) => {
+    const done = Object.keys(doneTasks || {}).length ? doneTasks : doneSession;
+    const allTasks = [
+      ...Object.entries(upcoming).map(([k,v]) => ({...v, key:k, isDone:false})),
+      ...Object.entries(done).map(([k,v]) => ({...v, key:k, isDone:true}))
+    ].filter(t => t.sessionIndex === sessionIndex);
+
+    if (!allTasks.length) {
+      list.innerHTML = '<li style="font-size:11px;color:var(--text3);padding:8px">No tasks defined for this session yet.</li>';
+      openModal('modalSessionView');
+      return;
+    }
+
+    allTasks.sort((a,b) => a.isDone - b.isDone || (a.order||0) - (b.order||0));
+
+    allTasks.forEach(task => {
+      const li = document.createElement('li');
+      li.className = 'task-item' + (task.isDone ? ' done-style' : '');
+      li.innerHTML = `
+        <input type="checkbox" ${task.isDone ? 'checked' : ''} disabled>
+        <div style="flex:1">
+          <span style="${task.isDone ? 'text-decoration:line-through;color:var(--text3)' : ''}">${task.text || ''}</span>
+          <div style="margin-top:2px">
+            <span class="weight-badge">${task.bibleRef || ''}</span>
+          </div>
+        </div>`;
+      list.appendChild(li);
+    });
+    openModal('modalSessionView');
+  });
 }
 // Close overlays on background click
 document.querySelectorAll('.overlay').forEach(o => {
