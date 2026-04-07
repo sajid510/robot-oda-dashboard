@@ -1689,16 +1689,68 @@ function rewriteUpcomingTask(key) {
     dbUpdate(`tasks/${currentUser}/upcoming/${key}`, { text: clean, updatedAt: Date.now() });
   });
 }
+  function checkUpcomingTask(key, checked) {
+  if (!checked) {
+    checkSessionCompletion();
+    return;
+  }
+  dbOnce(`tasks/${currentUser}/upcoming/${key}`, task => {
+    if (!task) return;
+    dbPush(`tasks/${currentUser}/doneSession`, {
+      ...task,
+      done: true,
+      completedAt: Date.now()
+    });
+    dbRemove(`tasks/${currentUser}/upcoming/${key}`);
+    checkSessionCompletion();
+  });
+}
+function checkSessionCompletion() {
+  if (!currentUser) return;
+  dbOnce(`tasks/${currentUser}`, allTasks => {
+    const tasks = allTasks || {};
+    const upcoming = Object.entries(tasks.upcoming || {}).map(([key, val]) => ({ key, ...val }));
+    const doneSessionEntries = Object.entries(tasks.doneSession || {});
+    const sessions = SESSION_DEFINITIONS[currentUser] || [];
+
+    sessions.forEach((session, idx) => {
+      const sessionIndex = idx + 1;
+      const hasPending = upcoming.some(t => Number(t.sessionIndex) === sessionIndex);
+      const completionEntries = doneSessionEntries.filter(([, t]) => t?.isSessionCompletion && Number(t.sessionIndex) === sessionIndex);
+
+      if (!hasPending && completionEntries.length === 0) {
+        dbPush(`tasks/${currentUser}/doneSession`, {
+          text: `${session.title} completed`,
+          isSessionCompletion: true,
+          sessionIndex,
+          done: true,
+          created: Date.now()
+        });
+      }
+      if (hasPending && completionEntries.length) {
+        completionEntries.forEach(([entryKey]) => dbRemove(`tasks/${currentUser}/doneSession/${entryKey}`));
+      }
+    });
+  });
+}
 function toggleTask(type, key, checked) {
   if (type === 'doneSession' && !checked) {
     dbOnce(`tasks/${currentUser}/doneSession/${key}`, val => {
+      if (val?.isSessionCompletion) {
+        dbRemove(`tasks/${currentUser}/doneSession/${key}`);
+        checkSessionCompletion();
+        return;
+      }
       dbPush(`tasks/${currentUser}/upcoming`, { ...val, done: false });
       dbRemove(`tasks/${currentUser}/doneSession/${key}`);
+      checkSessionCompletion();
     });
   } else if (type === 'doneSub' && !checked) {
     dbRemove(`tasks/${currentUser}/doneSub/${key}`);
-    } else if (type === 'handoff') {
+    checkSessionCompletion();
+  } else if (type === 'handoff') {
     dbUpdate(`handoff/${currentUser}/${key}`, { done: checked });
+    checkSessionCompletion();
   }
 }
 
