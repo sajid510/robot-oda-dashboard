@@ -1104,27 +1104,27 @@ const DEFAULT_GOALS = {
 };
   const SESSION_DEFINITIONS = {
   sadnan: [
-    { id:'s1', title:'Session 1 — Hardware', focus:'Chassis, motors, power rails', output:'Base platform assembled' },
-    { id:'s2', title:'Session 2 — Wiring', focus:'Arduino + driver wiring', output:'Verified pin map + continuity' },
-    { id:'s3', title:'Session 3 — Firmware', focus:'Motor + sensor firmware', output:'Stable Arduino firmware build' },
-    { id:'s4', title:'Session 4 — Sensors', focus:'LiDAR + Kinect + IMU hookup', output:'Live sensor streams validated' },
-    { id:'s5', title:'Session 5 — Validation', focus:'Safety + movement tests', output:'Checklist passed on bench tests' },
-    { id:'s6', title:'Session 6 — Integration', focus:'Final merge with ROS stack', output:'Hardware integration signed off' }
+    { name: "Session 1 — Hardware Bench Work" },
+    { name: "Session 2 — Jetson OS + Optimisation" },
+    { name: "Session 3 — Arduino Firmware Flash + Bench Test" },
+    { name: "Session 4 — Sensor Integration (Container)" },
+    { name: "Session 5 — Zenoh Bridge + Safety Validation" },
+    { name: "Session 6 — Final Integration Merge" },
   ],
   tazin: [
-    { id:'s1', title:'Session 1 — Containers', focus:'Docker image + workspace', output:'Reproducible dev container' },
-    { id:'s2', title:'Session 2 — ROS Setup', focus:'ROS 2 Humble baseline', output:'Core nodes launch reliably' },
-    { id:'s3', title:'Session 3 — Nav Stack', focus:'Nav2 bringup + params', output:'Working navigation pipeline' },
-    { id:'s4', title:'Session 4 — Simulation', focus:'Sim world + test routes', output:'Validated scenarios in sim' },
-    { id:'s5', title:'Session 5 — Zenoh', focus:'Bridge + remote comms', output:'Cross-network message flow' }
+    { name: "Session 1 — Environment Setup + Docker Install" },
+    { name: "Session 2 — Nav2 + EKF + SLAM Configuration" },
+    { name: "Session 3 — Simulation Test with Turtlebot3" },
+    { name: "Session 4 — RViz2 Configuration" },
+    { name: "Session 5 — Zenoh Bridge Test with Sadnan" },
   ],
   akib: [
-    { id:'s1', title:'Session 1 — Network', focus:'Jetson/laptop network plan', output:'Stable network topology' },
-    { id:'s2', title:'Session 2 — Protocol', focus:'Message framing + checks', output:'Documented protocol baseline' },
-    { id:'s3', title:'Session 3 — Firmware', focus:'Embedded communication loop', output:'Reliable serial exchange' },
-    { id:'s4', title:'Session 4 — Safety', focus:'Failsafe logic + watchdog', output:'Safety controls verified' },
-    { id:'s5', title:'Session 5 — Validation', focus:'End-to-end comm tests', output:'Validation report delivered' }
-  ]
+    { name: "Session 1 — Zenoh Network Configuration" },
+    { name: "Session 2 — Arduino Firmware: config.h + encoders.cpp" },
+    { name: "Session 3 — Arduino Firmware: motors.cpp + main .ino" },
+    { name: "Session 4 — Safety Node + Serial Node" },
+    { name: "Session 5 — Protocol Helpers + Final Compile Check" },
+  ],
 };
 
 // ── FIREBASE INIT ──────────────────────────────────────────────────
@@ -1696,10 +1696,13 @@ function addMyTask() {
   if (!text) return;
   dbPush(`tasks/${currentUser}/upcoming`, {
     text,
+    bibleRef: 'ADHOC',
+    sessionIndex: -1,
     done: false,
     weight:1,
     created: Date.now(),
-    order: latestUpcomingEntries.length
+    order: latestUpcomingEntries.length,
+    member: currentUser
   });
   if (inp1) inp1.value = '';
   if (inp2) inp2.value = '';
@@ -1748,16 +1751,20 @@ function checkSessionCompletion() {
     const sessions = SESSION_DEFINITIONS[currentUser] || [];
 
     sessions.forEach((session, idx) => {
-      const sessionIndex = idx + 1;
+      const sessionIndex = idx;
       const hasPending = upcoming.some(t => Number(t.sessionIndex) === sessionIndex);
       const completionEntries = doneSessionEntries.filter(([, t]) => t?.isSessionCompletion && Number(t.sessionIndex) === sessionIndex);
 
       if (!hasPending && completionEntries.length === 0) {
         dbPush(`tasks/${currentUser}/doneSession`, {
-          text: `${session.title} completed`,
+          text: `${session.name || session.title || `Session ${idx + 1}`} completed`,
+          bibleRef: 'SESSION',
           isSessionCompletion: true,
           sessionIndex,
+          order: -1,
+          weight: 1,
           done: true,
+          member: currentUser,
           created: Date.now()
         });
       }
@@ -2426,7 +2433,16 @@ function leaderAddTask() {
   const weight = parseInt(document.getElementById('taskWeight').value);
   if (!text) return;
 
-  const task = { text, weight, member, created: Date.now(), done: false };
+  const task = {
+    text,
+    bibleRef: 'LEADER',
+    sessionIndex: -1,
+    weight,
+    order: Date.now(),
+    done: false,
+    member,
+    created: Date.now()
+  };
 
   if (member === 'team') {
     dbPush('teamTasks/upcoming', task);
@@ -2493,78 +2509,394 @@ function leaderResetAllTaskData() {
 // SEED INITIAL TASKS (called once if no data)
 // ═══════════════════════════════════════════════════════════════════
 function seedInitialData(forceSeed = false) {
-  const USER_TASK_SEEDS = {
-    sadnan: [
-      { text:'Source all BOM components and verify', weight:2, bibleRef:'A.1', sessionIndex:1 },
-      { text:'Wire motors, IBT-2 drivers, encoders, IMU', weight:3, bibleRef:'A.2', sessionIndex:1 },
-      { text:'Measure wheel radius and separation physically', weight:1, bibleRef:'A.3', sessionIndex:1 },
-      { text:'Install udev rules on Jetson host (CH340, Kinect, LiDAR)', weight:1, bibleRef:'A.4', sessionIndex:2 },
-      { text:'Flash Jetson SD card — Ubuntu 20.04 Qengineering image', weight:2, bibleRef:'A.5', sessionIndex:2 },
-      { text:'Run Jetson base config: hostname, SSH, locale', weight:1, bibleRef:'A.6', sessionIndex:2 },
-      { text:'System optimization: ZRAM, swap, jetson_clocks', weight:2, bibleRef:'A.7', sessionIndex:2 },
-      { text:'Install Docker CE on Jetson', weight:1, bibleRef:'A.8', sessionIndex:3 },
-      { text:'Build Jetson Docker image (docker compose build)', weight:3, bibleRef:'A.9', sessionIndex:3 },
-      { text:'Flash Arduino firmware and run bench tests', weight:3, bibleRef:'A.10', sessionIndex:4 },
-      { text:'Sensor integration: all 5 nodes running inside container', weight:3, bibleRef:'A.11', sessionIndex:4 },
-      { text:'Zenoh bridge validation with laptop', weight:2, bibleRef:'A.12', sessionIndex:5 },
-      { text:'Final integration: merge all three tracks', weight:3, bibleRef:'A.13', sessionIndex:6 }
-    ],
-    tazin: [
-      { text:'Install ROS 2 Humble on laptop (Ubuntu 22.04)', weight:2, bibleRef:'B.1', sessionIndex:1 },
-      { text:'Create laptop directory structure ~/robot_oda_laptop/', weight:1, bibleRef:'B.2', sessionIndex:1 },
-      { text:'Write zenoh_router Dockerfile (pinned to 0.11.0)', weight:2, bibleRef:'B.3', sessionIndex:2 },
-      { text:'Write nav2_slam Dockerfile and entrypoint.sh', weight:2, bibleRef:'B.4', sessionIndex:2 },
-      { text:'Write rviz2 Dockerfile', weight:1, bibleRef:'B.5', sessionIndex:2 },
-      { text:'Write docker-compose.yml for all laptop containers', weight:2, bibleRef:'B.6', sessionIndex:2 },
-      { text:'Build and test all laptop containers', weight:2, bibleRef:'B.7', sessionIndex:3 },
-      { text:'Write nav2_params.yaml (add qos best_effort for scan)', weight:3, bibleRef:'B.8', sessionIndex:3 },
-      { text:'Write ekf_params.yaml and slam_params.yaml', weight:2, bibleRef:'B.9', sessionIndex:3 },
-      { text:'Write laptop_bringup.launch.py', weight:2, bibleRef:'B.10', sessionIndex:4 },
-      { text:'Test Nav2 against Turtlebot3 simulation', weight:3, bibleRef:'B.11', sessionIndex:4 },
-      { text:'Configure robot_oda.rviz with all displays', weight:2, bibleRef:'B.12', sessionIndex:5 },
-      { text:'Zenoh bridge test session with Member A', weight:2, bibleRef:'B.13', sessionIndex:5 }
-    ],
-    akib: [
-      { text:'Get Tailscale IPs from Sadnan', weight:1, bibleRef:'C.1', sessionIndex:1 },
-      { text:'Write jetson_zenoh_config.json5 (client, 300ms gossip)', weight:2, bibleRef:'C.2', sessionIndex:1 },
-      { text:'Write laptop_zenoh_router_config.json5 (router, 500ms)', weight:2, bibleRef:'C.3', sessionIndex:1 },
-      { text:'Write rmw_zenoh_config.json5 (client, 300ms)', weight:2, bibleRef:'C.4', sessionIndex:1 },
-      { text:'Write config.h (all pin assignments, fault bits, constants)', weight:3, bibleRef:'C.5', sessionIndex:2 },
-      { text:'Write encoders.cpp (INT3/INT2 for left, PCINT0 for right)', weight:3, bibleRef:'C.6', sessionIndex:2 },
-      { text:'Compile check: arduino-cli compile --fqbn arduino:avr:mega', weight:1, bibleRef:'C.7', sessionIndex:2 },
-      { text:'Write motors.cpp (MOTOR_PWM_TOP unified, Timer3+Timer4)', weight:3, bibleRef:'C.8', sessionIndex:3 },
-      { text:'Write robot_oda_firmware.ino (INT4_vect, EICRB, WDTO_8S)', weight:3, bibleRef:'C.9', sessionIndex:3 },
-      { text:'Write safety_node.py (STOP=0.35m, SLOW=0.70m, turn logic)', weight:3, bibleRef:'C.10', sessionIndex:4 },
-      { text:'Write serial_node.py (/odom RELIABLE, heartbeat forwarding)', weight:3, bibleRef:'C.11', sessionIndex:4 },
-      { text:'Write protocol.h/cpp (crc8, ntoh_float, packet builders)', weight:2, bibleRef:'C.12', sessionIndex:5 },
-      { text:'Write tx_queue.h/cpp (4-slot circular queue, non-blocking)', weight:2, bibleRef:'C.13', sessionIndex:5 },
-      { text:'Final compile check — zero errors required', weight:1, bibleRef:'C.14', sessionIndex:6 }
-    ]
+  const SADNAN_TASKS = [
+
+  // ── Session 1 — Hardware Bench Work ──────────────────────────
+  { sessionIndex:0, order:0,  weight:2, bibleRef:"P0·S2.1",
+    text:"Source and verify all BOM components against Section 2.1 table. Check IBT-2 ×2, DK-37R ×2, MPU6050, RPLidar A1M8-R6, Kinect 1414, ACS712-30A ×2, 3S LiPo, buck converter, resistors." },
+
+  { sessionIndex:0, order:1,  weight:3, bibleRef:"P0·S2.2",
+    text:"Wire left and right motors to IBT-2 drivers. Insert 1kΩ series resistors on PWM, DIR, EN signal lines per S2.2 wiring table. Add 100µF electrolytic caps across each B+/B- terminal." },
+
+  { sessionIndex:0, order:2,  weight:3, bibleRef:"P0·S2.2",
+    text:"Wire DK-37R encoders. Connect Yellow(ChA) to D18, Green(ChB) to D19 for left; Yellow(ChA) to D23, Green(ChB) to D24 for right. Add 4.7kΩ pullup to 5V on all 4 encoder signal lines." },
+
+  { sessionIndex:0, order:3,  weight:2, bibleRef:"P0·S2.2",
+    text:"Wire MPU6050 IMU. SDA→D20, SCL→D21 with 4.7kΩ pullups to 5V. INT→D22. AD0→GND (I2C address 0x68). Verify wiring matches S2.2 IMU table exactly." },
+
+  { sessionIndex:0, order:4,  weight:2, bibleRef:"P0·S2.4",
+    text:"Wire power topology. Battery(+)→15A fuse→Schottky diode→12V rail. 12V rail splits to both IBT-2 B+ and to buck converter input. Buck 5V output→Arduino Vin and Jetson 5V barrel. Confirm common GND across all components." },
+
+  { sessionIndex:0, order:5,  weight:2, bibleRef:"P0·S2.2",
+    text:"Wire ACS712-30A ×2. Left motor current sensor output→A1, right→A2. Verify 2.5V at 0A with multimeter before connecting motors." },
+
+  { sessionIndex:0, order:6,  weight:1, bibleRef:"P0·S2.2",
+    text:"Wire E-stop button. Normally-open button between D2 (PE4/INT4) and GND. Add 10kΩ pullup resistor to 5V. Wire HEARTBEAT_LED (green) to D13 with 330Ω. FAULT_LED (red) to D12 with 330Ω." },
+
+  { sessionIndex:0, order:7,  weight:1, bibleRef:"P0·S2.2",
+    text:"Wire voltage divider for battery monitoring. 10kΩ between 12V rail and A0, 3.9kΩ between A0 and GND. Measure with multimeter: at 12V input, A0 should read 3.36V ±0.1V." },
+
+  { sessionIndex:0, order:8,  weight:1, bibleRef:"P0·S2.1",
+    text:"Physically measure wheel radius (nominal 76.2mm/2 = 38.1mm) and wheel separation centre-to-centre (nominal 355.6mm). Record actual values — these will update WHEEL_RADIUS_M and WHEEL_SEP_M in config.h." },
+
+  { sessionIndex:0, order:9,  weight:1, bibleRef:"P0·S2.2",
+    text:"Plug Arduino into Jetson USB. Run: lsusb | grep 1a86 — confirm VID:1a86 PID:7523 (CH340G). Plug RPLidar. Run: lsusb | grep 10c4 — confirm CP210x. Confirm Kinect: lsusb | grep 045e." },
+
+  // ── Session 2 — Jetson OS + Optimisation ─────────────────────
+  { sessionIndex:1, order:0,  weight:2, bibleRef:"P1·S3.1",
+    text:"Download Qengineering Ubuntu 20.04 image for Jetson Nano from GitHub releases page. On laptop: dd if=*.img of=/dev/sdX bs=4M status=progress. Insert SD card into Jetson, power on, complete setup wizard." },
+
+  { sessionIndex:1, order:1,  weight:1, bibleRef:"P1·S3.2",
+    text:"First boot configuration: run passwd to change default password. Set hostname: sudo hostnamectl set-hostname robot-oda. Update /etc/hosts. Set timezone: sudo timedatectl set-timezone Asia/Dhaka." },
+
+  { sessionIndex:1, order:2,  weight:1, bibleRef:"P1·S3.2",
+    text:"Update system: sudo apt update && sudo apt upgrade -y. Install base packages: curl wget git vim htop net-tools ssh openssh-server setserial minicom build-essential cmake python3-pip. Enable SSH." },
+
+  { sessionIndex:1, order:3,  weight:2, bibleRef:"P1·S3.3",
+    text:"Install ZRAM: sudo apt install -y zram-config. Verify: cat /proc/swaps shows /dev/zram0. Create 2GB swapfile. Set vm.swappiness=10 in /etc/sysctl.conf. Verify: free -h shows >4GB effective swap." },
+
+  { sessionIndex:1, order:4,  weight:1, bibleRef:"P1·S3.3",
+    text:"Disable unnecessary services: sudo systemctl disable bluetooth cups avahi-daemon ModemManager. Set Jetson to MaxN power mode: sudo nvpmodel -m 0 && sudo jetson_clocks. Add jetson_clocks to /etc/rc.local." },
+
+  { sessionIndex:1, order:5,  weight:2, bibleRef:"P1·S4.1",
+    text:"Install Tailscale on Jetson: curl -fsSL https://tailscale.com/install.sh | sh. Run: sudo tailscale up. Authenticate via browser URL. Record Jetson Tailscale IP (100.x.x.x). Run: tailscale ping <laptop-IP> — must show direct." },
+
+  // ── Session 3 — Arduino Firmware Flash + Bench Test ──────────
+  { sessionIndex:2, order:0,  weight:1, bibleRef:"P3·S11.4",
+    text:"Install arduino-cli on Jetson: curl install script. Run: arduino-cli core update-index && arduino-cli core install arduino:avr. Run: arduino-cli lib install Wire." },
+
+  { sessionIndex:2, order:1,  weight:1, bibleRef:"P3·S11.4",
+    text:"Pull Akib's firmware from Git repo (Track C handoff). Confirm files present: config.h, encoders.cpp, motors.cpp, robot_oda_firmware.ino, protocol.h/cpp, faults.h/cpp, tx_queue.h/cpp, power.h/cpp, imu.h/cpp." },
+
+  { sessionIndex:2, order:2,  weight:2, bibleRef:"P3·S11.4",
+    text:"Update config.h with physically measured values from Session 1: set WHEEL_RADIUS_M and WHEEL_SEP_M to your measurements. Recompute METERS_PER_TICK = π × (2×WHEEL_RADIUS_M) / 825." },
+
+  { sessionIndex:2, order:3,  weight:2, bibleRef:"P3·S11.4",
+    text:"Compile firmware: arduino-cli compile --fqbn arduino:avr:mega:cpu=atmega2560 ~/robot_oda_firmware/ — must show ZERO errors. If errors, check with Akib immediately." },
+
+  { sessionIndex:2, order:4,  weight:2, bibleRef:"P3·S11.4",
+    text:"Upload firmware: arduino-cli upload -p /dev/robot_oda_arduino --fqbn arduino:avr:mega:cpu=atmega2560 ~/robot_oda_firmware/. Verify: minicom -D /dev/robot_oda_arduino -b 115200 shows 'robot_oda ready. RAM: >5500'." },
+
+  { sessionIndex:2, order:5,  weight:2, bibleRef:"P3·S13.1",
+    text:"Bench test encoders (robot lifted off ground). Rotate left wheel one full revolution by hand. Confirm: left_encoder_count = 825 ±10. Repeat for right wheel. Forward rotation = positive count." },
+
+  { sessionIndex:2, order:6,  weight:2, bibleRef:"P3·S13.1",
+    text:"Bench test E-stop. Send velocity command (wheels spinning). Press E-stop button. Confirm: motors stop <5ms, FAULT_LED goes solid. Release button, send reset command. Confirm: motors resume and LED extinguishes." },
+
+  { sessionIndex:2, order:7,  weight:1, bibleRef:"P3·S13.1",
+    text:"Bench test IMU. Tilt robot forward — confirm ax increases in serial output. Rotate left — confirm gz positive. Tilt robot backward — confirm ax decreases. All values sensible for ±2g and ±250°/s ranges." },
+
+  { sessionIndex:2, order:8,  weight:1, bibleRef:"P3·S13.1",
+    text:"Bench test battery monitoring. With fully charged 3S LiPo: serial output BATTERY packet should show 12.4–12.6V. Verify formula: analogRead(A0) × 0.0179 ≈ actual multimeter voltage ±0.1V." },
+
+  { sessionIndex:2, order:9,  weight:2, bibleRef:"P3·S13.4",
+    text:"Heartbeat watchdog test. Start minicom but do NOT start Jetson container. Wait 5s (boot grace period) + 500ms. Confirm: FAULT_LED goes solid (FAULT_BIT_HEARTBEAT). Start container. Confirm: LED extinguishes within 500ms of first heartbeat." },
+
+  // ── Session 4 — Sensor Integration (Container) ───────────────
+  { sessionIndex:3, order:0,  weight:2, bibleRef:"P4·S5.1",
+    text:"Install Docker CE on Jetson: follow S5.1 apt commands. Add user to docker group: sudo usermod -aG docker $USER. Enable Docker: sudo systemctl enable docker. Verify: docker run --rm hello-world succeeds." },
+
+  { sessionIndex:3, order:1,  weight:1, bibleRef:"P4·S5.4",
+    text:"Install udev rules on Jetson host from S5.4: 99-robot-oda-arduino.rules (VID:1a86), 99-robot-oda-lidar.rules (VID:10c4), 51-kinect.rules (VID:045e ×3), 99-usb-serial-latency.rules (ch341-uart latency_timer=1). Reload: sudo udevadm control --reload-rules && sudo udevadm trigger." },
+
+  { sessionIndex:3, order:2,  weight:3, bibleRef:"P4·S5.5",
+    text:"Build Jetson Docker image: cd ~/robot_oda_jetson && docker compose build. Takes 20–40 minutes. Monitor for errors. Image includes ros:humble-ros-base, libfreenect, python3-freenect, rplidar-ros, rmw_zenoh_cpp." },
+
+  { sessionIndex:3, order:3,  weight:1, bibleRef:"P4·S5.5",
+    text:"Start container: docker compose up. Wait for: 'Kinect depth stream active', 'Serial connected: /dev/robot_oda_arduino @ 115200', 'Safety node active: STOP<=0.35m SLOW<=0.70m'. Confirm all 3 messages appear." },
+
+  { sessionIndex:3, order:4,  weight:2, bibleRef:"P5·S13.2",
+    text:"Inside container (docker exec -it robot_oda_onboard bash): run ros2 topic list. Verify ALL topics present: /scan, /kinect/depth/image_raw, /kinect/scan, /odom, /imu/data, /robot_heartbeat, /robot_oda/fault, /tf, /tf_static." },
+
+  { sessionIndex:3, order:5,  weight:2, bibleRef:"P5·S13.2",
+    text:"Check publish rates inside container: ros2 topic hz /scan (~5.5Hz), /kinect/depth/image_raw (~15Hz), /kinect/scan (~15Hz), /odom (~30Hz), /imu/data (~30Hz), /robot_heartbeat (~10Hz). All must match targets." },
+
+  { sessionIndex:3, order:6,  weight:2, bibleRef:"P5·S13.2",
+    text:"Verify TF chain: ros2 run tf2_tools view_frames inside container. Must show: odom→base_link→laser_link, base_link→kinect_depth_frame, base_link→imu_link. All three branches required for Nav2." },
+
+  { sessionIndex:3, order:7,  weight:2, bibleRef:"P5·S13.1",
+    text:"Drive motors via Python test script (Section 13.1). Send 0.1 m/s both wheels for 2 seconds, then E-stop. Confirm wheels spin, odometry updates, then stops cleanly. Run ros2 topic echo /odom to verify x-position increases." },
+
+  // ── Session 5 — Zenoh Bridge + Safety Validation ─────────────
+  { sessionIndex:4, order:0,  weight:2, bibleRef:"P6·S7.5",
+    text:"Coordinate with Tazin (sync call required). Tazin starts zenoh_router container on laptop. Jetson container already running. On laptop: ros2 topic list — must show all Jetson topics. This is the only mandatory two-person step." },
+
+  { sessionIndex:4, order:1,  weight:2, bibleRef:"P6·S7.5",
+    text:"Verify QoS across bridge: ros2 topic echo /odom --once on laptop must print data (not timeout). ros2 topic echo /imu/data --once must print data. Check rates: ros2 topic hz /odom (~30Hz), /scan (~5.5Hz)." },
+
+  { sessionIndex:4, order:2,  weight:2, bibleRef:"P6·S8.1",
+    text:"Safety test — STOP zone: place hand 0.20m in front of LiDAR. Send cmd_vel 0.3 m/s from laptop. Verify /safe_cmd_vel.linear.x = 0.0 on Jetson. Console must log 'STOP: obstacle at 0.20m (<=0.35m)'." },
+
+  { sessionIndex:4, order:3,  weight:2, bibleRef:"P6·S8.2",
+    text:"Safety test — SLOW zone: place object at ~0.50m. Expected scale = (0.50-0.35)/(0.70-0.35) = 0.4286. Verify /safe_cmd_vel.linear.x ≈ cmd_vel × 0.43 ±0.02. Console must log 'SLOW: 0.50m sc=0.43'." },
+
+  { sessionIndex:4, order:4,  weight:1, bibleRef:"P6·S8.3",
+    text:"Safety test — turn-in-place: set cmd_vel linear.x=0, angular.z=0.5. Place obstacle 0.50m to the SIDE (not in ±30° front arc). Verify /safe_cmd_vel.angular.z = 0.5 unrestricted (obstacle not in tight arc)." },
+
+  { sessionIndex:4, order:5,  weight:2, bibleRef:"P6·S13.4",
+    text:"Failure test — LiDAR disconnect: unplug LiDAR USB while robot stationary. Verify: within 1.0s, safety_node logs 'LiDAR data timeout — STOP'. /safe_cmd_vel goes to zero. Replug — confirm /scan resumes." },
+
+  { sessionIndex:4, order:6,  weight:2, bibleRef:"P6·S13.4",
+    text:"Failure test — heartbeat timeout: stop Jetson container (Ctrl+C). Verify: within 500ms, Arduino FAULT_LED goes solid. Restart container. Verify: FAULT_LED extinguishes within 500ms of first heartbeat." },
+
+  // ── Session 6 — Final Integration Merge ──────────────────────
+  { sessionIndex:5, order:0,  weight:2, bibleRef:"P8·S12.2",
+    text:"Pull Tazin's Track B handoff from Git: nav2_params.yaml (with qos_policy_reliability: best_effort on /scan), ekf_params.yaml, slam_params.yaml, laptop_bringup.launch.py. Confirm all 4 files present." },
+
+  { sessionIndex:5, order:1,  weight:2, bibleRef:"P8·S12.2",
+    text:"Pull Akib's Track C handoff from Git: jetson_zenoh_config.json5, laptop_zenoh_router_config.json5, rmw_zenoh_config.json5 (all with correct Tailscale IPs). Update Tailscale IPs if changed since Akib wrote the files." },
+
+  { sessionIndex:5, order:2,  weight:1, bibleRef:"P8·S12.2",
+    text:"Start full stack in correct order per S12.2: (1) zenoh_router on Laptop, (2) Jetson container, (3) nav2_slam on Laptop, (4) RViz2 on Laptop. Verify all 4 start without errors." },
+
+  { sessionIndex:5, order:3,  weight:2, bibleRef:"P8·S13.3",
+    text:"SLAM mapping run: teleop robot manually through entire deployment environment. Monitor RViz2 — map must build continuously. Save map when complete: ros2 run nav2_map_server map_saver_cli -f ~/maps/robot_oda_map. Verify .yaml and .pgm files created." },
+
+  { sessionIndex:5, order:4,  weight:2, bibleRef:"P8·S13.3",
+    text:"Autonomous navigation test: load saved map, switch to AMCL localization mode. Set 2D Pose Estimate in RViz2. Send 2D Nav Goal. Robot must navigate to goal without collision. Verify safety node overrides if obstacle appears en route." },
+
+  { sessionIndex:5, order:5,  weight:2, bibleRef:"P8·S13.4",
+    text:"Full failure test suite from S13.4: (1) kill network→motors stop within 500ms, (2) kill laptop Nav2→cmd_vel stops→watchdog fires, (3) LiDAR disconnect during motion→stops within 1s, (4) battery critical voltage test on bench PSU." },
+
+  { sessionIndex:5, order:6,  weight:2, bibleRef:"P8·S9",
+    text:"Final calibration: drive robot exactly 1.0m straight. Verify /odom reports 1.0m ±0.02m. Drive full 360° rotation. Verify /odom theta = 6.28 ±0.1 rad. If off by >5%, recalculate WHEEL_RADIUS_M or WHEEL_SEP_M and reflash." },
+
+  { sessionIndex:5, order:7,  weight:1, bibleRef:"P8·S9",
+    text:"Complete Section 9 final verification checklist (all 35+ checkboxes). All items must pass before robot is considered deployment-ready. Document any failures in the Issues section of the dashboard." },
+];
+    const TAZIN_TASKS = [
+
+  // ── Session 1 — Environment Setup + Docker Install ────────────
+  { sessionIndex:0, order:0,  weight:2, bibleRef:"P4·S6.1",
+    text:"Install ROS 2 Humble on laptop (Ubuntu 22.04): follow S6.1 apt commands exactly. Install ros-humble-desktop, ros-humble-navigation2, ros-humble-nav2-bringup, ros-humble-robot-localization, ros-humble-slam-toolbox, ros-humble-rmw-zenoh-cpp, ros-humble-teleop-twist-keyboard, ros-humble-rviz2, python3-colcon-common-extensions." },
+
+  { sessionIndex:0, order:1,  weight:1, bibleRef:"P4·S6.2",
+    text:"Create workspace: mkdir -p ~/robot_oda_laptop/. Create directory structure from S8: zenoh_router/, nav2_slam/config/, nav2_slam/launch/, rviz2/config/. Confirm all folders exist before writing any files." },
+
+  { sessionIndex:0, order:2,  weight:2, bibleRef:"P4·S5.1",
+    text:"Install Docker CE on laptop: follow S5.1 apt commands for Ubuntu 22.04. Add user to docker group. Enable Docker service. Verify: docker run --rm hello-world succeeds. Install docker-compose-plugin." },
+
+  { sessionIndex:0, order:3,  weight:1, bibleRef:"P4·S6.3",
+    text:"Configure .bashrc: add source /opt/ros/humble/setup.bash, export RMW_IMPLEMENTATION=rmw_zenoh_cpp, export RMW_ZENOH_CONFIG_FILE=~/robot_oda_config/zenoh/rmw_zenoh_config.json5. Do NOT set ROS_DOMAIN_ID — Zenoh handles routing. Run: source ~/.bashrc." },
+
+  // ── Session 2 — Nav2 + EKF + SLAM Configuration ──────────────
+  { sessionIndex:1, order:0,  weight:2, bibleRef:"P4·S7.2",
+    text:"Write zenoh_router/Dockerfile from S7.2. Pin zenohd to version 0.11.0 — this version MUST match rmw_zenoh_cpp on Jetson. Download zenoh-0.11.0-x86_64-unknown-linux-gnu-standalone.zip from GitHub releases." },
+
+  { sessionIndex:1, order:1,  weight:2, bibleRef:"P4·S5.5",
+    text:"Write nav2_slam/Dockerfile and entrypoint.sh from S5.5 laptop section. Install: ros-humble-navigation2, ros-humble-nav2-bringup, ros-humble-slam-toolbox, ros-humble-robot-localization, ros-humble-rmw-zenoh-cpp. Set ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp." },
+
+  { sessionIndex:1, order:1,  weight:1, bibleRef:"P4·S5.5",
+    text:"Write rviz2/Dockerfile from S5 rviz2 section. Install: ros-humble-rviz2, ros-humble-rmw-zenoh-cpp, ros-humble-nav2-rviz-plugins. Install libgl1-mesa-glx for GUI rendering. Write entrypoint.sh." },
+
+  { sessionIndex:1, order:2,  weight:3, bibleRef:"P4·S7.4",
+    text:"Write nav2_params.yaml — CRITICAL: in obstacle_layer, add qos_policy_reliability: best_effort for /scan AND /kinect/scan subscriptions. Without this, Nav2 receives zero LiDAR data over Zenoh (silent failure). Use S7.4 nav2_params.yaml as the exact template." },
+
+  { sessionIndex:1, order:3,  weight:2, bibleRef:"P4·S6",
+    text:"Write ekf_params.yaml from S6 ekf section. /odom and /imu/data are published RELIABLE by serial_node — EKF default is RELIABLE subscriber — no QoS override needed. Set frequency: 30.0, two_d_mode: true. Configure odom0 and imu0 config arrays exactly as in S6." },
+
+  { sessionIndex:1, order:4,  weight:2, bibleRef:"P4·S7",
+    text:"Write slam_params.yaml from slam_toolbox defaults. Key settings: mode: mapping, use_scan_matching: true, use_pose_extrapolator: true, map_update_interval: 5.0. Match loop closure settings to indoor corridor environment." },
+
+  { sessionIndex:1, order:5,  weight:2, bibleRef:"P4·S12.1",
+    text:"Write laptop_bringup.launch.py from S12.1. Include: ekf_node (robot_localization), slam_toolbox online_async_launch, navigation_launch from nav2_bringup. Pass params_file: /config/nav2_params.yaml." },
+
+  { sessionIndex:1, order:6,  weight:2, bibleRef:"P4·S5",
+    text:"Write docker-compose.yml for all laptop containers from S7.3: zenoh_router (starts first), nav2_slam (depends_on zenoh_router), rviz2 (no-restart, on-demand). All use network_mode: host. Mount ~/robot_oda_config/zenoh/rmw_zenoh_config.json5." },
+
+  { sessionIndex:1, order:7,  weight:2, bibleRef:"P4·S5",
+    text:"Build all laptop containers: cd ~/robot_oda_laptop && docker compose build. Fix any build errors. Verify all three images build successfully: docker images | grep robot_oda." },
+
+  // ── Session 3 — Simulation Test with Turtlebot3 ───────────────
+  { sessionIndex:2, order:0,  weight:2, bibleRef:"P5·S13.3",
+    text:"Install Turtlebot3 simulation: sudo apt install -y ros-humble-turtlebot3 ros-humble-turtlebot3-simulations. Set: export TURTLEBOT3_MODEL=burger in .bashrc. Launch: ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py." },
+
+  { sessionIndex:2, order:1,  weight:3, bibleRef:"P5·S13.3",
+    text:"Launch laptop Nav2 stack against Turtlebot3 sim: docker compose up nav2_slam (inside container). Verify SLAM builds a map of simulated world. Visualise in RViz2. Send 2D Nav Goal — simulated robot must navigate to it." },
+
+  { sessionIndex:2, order:2,  weight:2, bibleRef:"P5·S13.3",
+    text:"Save simulated map: ros2 run nav2_map_server map_saver_cli -f ~/maps/test_map. Verify test_map.yaml and test_map.pgm created. This validates the full Nav2 pipeline before connecting to physical robot." },
+
+  { sessionIndex:2, order:3,  weight:2, bibleRef:"P5·S13.2",
+    text:"QoS validation test: in nav2_slam container, check that /scan topic is received at ~5.5Hz (or simulated equivalent). Verify no 'QoS mismatch' warnings in Nav2 logs. If warnings appear, re-check nav2_params.yaml qos_policy_reliability settings." },
+
+  // ── Session 4 — RViz2 Configuration ──────────────────────────
+  { sessionIndex:3, order:0,  weight:2, bibleRef:"P4·S12.1",
+    text:"Configure robot_oda.rviz from S12.1 RViz2 section. Add displays: RobotModel (/robot_description), TF, Odometry (/odom), Map (/map), Map (/local_costmap/costmap), Map (/global_costmap/costmap), LaserScan (/scan), Path (/plan). Save config to rviz2/config/robot_oda.rviz." },
+
+  { sessionIndex:3, order:1,  weight:1, bibleRef:"P4·S12.1",
+    text:"Set up X11 forwarding for RViz2 Docker container: run xhost +local:docker in .bashrc. Verify rviz2 container launches and renders GUI: docker compose run --rm rviz2. RViz2 window must appear with configured displays." },
+
+  { sessionIndex:3, order:2,  weight:1, bibleRef:"P4·S9",
+    text:"Set up remote monitoring RViz2 config per S9.4. Add displays relevant to remote supervision: /robot_oda/fault (for safety monitoring), /battery/state, PointCloud2 /kinect/depth/points. Save as rviz2/config/robot_oda_remote.rviz." },
+
+  // ── Session 5 — Zenoh Bridge Test with Sadnan ─────────────────
+  { sessionIndex:4, order:0,  weight:2, bibleRef:"P6·S7.5",
+    text:"COORDINATE WITH SADNAN: This session requires both of you online simultaneously. Start zenoh_router container on your laptop first: docker compose up zenoh_router. Wait for 'zenohd is ready'. Signal Sadnan to start Jetson container." },
+
+  { sessionIndex:4, order:1,  weight:2, bibleRef:"P6·S7.5",
+    text:"Inside nav2_slam container: run ros2 topic list. Must show all Jetson-side topics: /scan, /kinect/depth/image_raw, /kinect/scan, /odom, /imu/data, /robot_heartbeat, /robot_oda/fault, /tf, /tf_static. If any missing, check Zenoh connection." },
+
+  { sessionIndex:4, order:2,  weight:2, bibleRef:"P6·S7.5",
+    text:"Data flow verification: ros2 topic echo /odom --once must print actual data (not timeout). ros2 topic echo /imu/data --once must print data. Both must work — these are RELIABLE QoS. ros2 topic hz /odom must show ~30Hz." },
+
+  { sessionIndex:4, order:3,  weight:2, bibleRef:"P6·S7.5",
+    text:"Command flow verification: ros2 topic pub /cmd_vel geometry_msgs/msg/Twist '{linear:{x:0.1}}' --rate 10 from laptop. On Jetson container: ros2 topic echo /safe_cmd_vel. Must show linear.x ≈ 0.1 (safety node passes through in free zone)." },
+
+  { sessionIndex:4, order:4,  weight:1, bibleRef:"P6·S7.5",
+    text:"Document Zenoh bridge test results in dashboard Notes. Record: topic list status, data flow confirmation, any QoS warnings found, latency observed. Commit all confirmed-working config files to Git on branch track-b-nav2." },
+];
+    const AKIB_TASKS = [
+
+  // ── Session 1 — Zenoh Network Configuration ──────────────────
+  { sessionIndex:0, order:0,  weight:1, bibleRef:"P2·S7",
+    text:"Get Tailscale IPs from Sadnan via group chat. You need LAPTOP_TAILSCALE_IP (100.x.x.x) for all three Zenoh config files. Do not proceed until you have the confirmed IP." },
+
+  { sessionIndex:0, order:1,  weight:2, bibleRef:"P2·S7.3",
+    text:"Write jetson_zenoh_config.json5: mode=client, endpoint=tcp/<LAPTOP_TAILSCALE_IP>:7447, transport.unicast.lowlatency=true, scouting.multicast.enabled=false, scouting.gossip.period=300 (fast reconnect). Save to ~/robot_oda_config/zenoh/." },
+
+  { sessionIndex:0, order:2,  weight:2, bibleRef:"P2·S7.3",
+    text:"Write laptop_zenoh_router_config.json5: mode=router, listen=tcp/<LAPTOP_TAILSCALE_IP>:7447, transport.unicast.lowlatency=true, scouting.gossip.period=500 (stable router, less chatter). Save to ~/robot_oda_config/zenoh/." },
+
+  { sessionIndex:0, order:3,  weight:2, bibleRef:"P2·S7.3",
+    text:"Write rmw_zenoh_config.json5: mode=client, same endpoint and settings as jetson config. scouting.gossip.period=300. This file is used by ALL ROS 2 nodes on both Jetson container and Laptop. Save to ~/robot_oda_config/zenoh/." },
+
+  { sessionIndex:0, order:4,  weight:1, bibleRef:"P2·S7",
+    text:"Verify all 3 Zenoh config files: check endpoint IPs match exactly, check mode values (client/client/router), check gossip periods (300/300/500). Commit all 3 files to Git on branch track-c-firmware-safety." },
+
+  // ── Session 2 — config.h + encoders.cpp ──────────────────────
+  { sessionIndex:1, order:0,  weight:3, bibleRef:"P3·S11.3",
+    text:"Write config.h from S11.3. Critical pin assignments: D2=PE4=INT4 (E-stop), D6=PH3=OC4A (Left PWM Timer4), D5=PE3=OC3A (Right PWM Timer3), D18=PD3=INT3 (Left Enc A), D19=PD2=INT2 (Left Enc B), D23=PA1=PCINT1 (Right Enc A), D24=PA2=PCINT2 (Right Enc B). Set MOTOR_PWM_TOP=99, TICKS_PER_REV=825, STOP_DIST removed (handled in safety_node)." },
+
+  { sessionIndex:1, order:1,  weight:2, bibleRef:"P3·S11.3",
+    text:"In config.h: set HEARTBEAT_TIMEOUT_MS=500, HW WDT will be WDTO_8S (not 1S — critical), CMD_VEL_TIMEOUT_MS=500, FAULT_BIT_HEARTBEAT=(1<<6). Set MOTOR_PWM_TOP=99 as single unified constant for BOTH Timer3 and Timer4 (no separate TIMER3_TOP/TIMER4_TOP)." },
+
+  { sessionIndex:1, order:2,  weight:3, bibleRef:"P3·S11.3",
+    text:"Write encoders.cpp from S11.3. LEFT encoder: ISR(INT3_vect) for ChA on D18=PD3, ISR(INT2_vect) for ChB on D19=PD2. Use EICRA register with ISC30/ISC20 bits for CHANGE trigger. EIMSK |= (1<<INT3)|(1<<INT2). Port reads: PIND & (1<<PD3) and PIND & (1<<PD2)." },
+
+  { sessionIndex:1, order:3,  weight:3, bibleRef:"P3·S11.3",
+    text:"RIGHT encoder in encoders.cpp: ISR(PCINT0_vect) — NOT PCINT2_vect (critical audit fix). PCICR |= (1<<PCIE0) — NOT PCIE2. PCMSK0 |= (1<<PCINT1)|(1<<PCINT2) for D23=PA1=PCINT1, D24=PA2=PCINT2. Port reads: PINA & (1<<PA1) and PINA & (1<<PA2). Track both right_enc_a_prev and right_enc_b_prev." },
+
+  { sessionIndex:1, order:4,  weight:2, bibleRef:"P3·S11.3",
+    text:"Compile check: install arduino-cli, run arduino-cli compile --fqbn arduino:avr:mega:cpu=atmega2560 ~/robot_oda_firmware/. Must show ZERO errors and ZERO warnings for encoders.cpp and config.h. Fix all issues before Session 3." },
+
+  // ── Session 3 — motors.cpp + main .ino ───────────────────────
+  { sessionIndex:2, order:0,  weight:3, bibleRef:"P3·S11.3",
+    text:"Write motors.cpp from S11.3. init_motor_pwm(): Timer4 for LEFT (OC4A=D6=PH3): TCCR4A=(1<<COM4A1)|(1<<WGM41), TCCR4B=(1<<WGM43)|(1<<WGM42)|(1<<CS41), ICR4=MOTOR_PWM_TOP. Timer3 for RIGHT (OC3A=D5=PE3): same pattern with TCCR3A/3B/ICR3. Start both drivers disabled (LOW), enable after PWM configured." },
+
+  { sessionIndex:2, order:1,  weight:2, bibleRef:"P3·S11.3",
+    text:"Write set_motor_pwm() in motors.cpp: takes uint8_t motor (MOTOR_LEFT/MOTOR_RIGHT) and int16_t pwm (-255 to +255). Direction: pwm>=0→HIGH, pwm<0→LOW. Map 0-255 to 0-MOTOR_PWM_TOP using map(). Use &OCR4A for left, &OCR3A for right. Dead zone: if |pwm_float|<25 && >0, clamp to ±25." },
+
+  { sessionIndex:2, order:2,  weight:3, bibleRef:"P3·S11.3",
+    text:"Write robot_oda_firmware.ino main sketch. E-stop ISR: ISR(INT4_vect) — NOT INT0_vect. Setup: EICRB |= (1<<ISC41); EICRB &= ~(1<<ISC40); EIMSK |= (1<<INT4). ISR body: SET_FAULT(FAULT_BIT_ESTOP), OCR4A=0, OCR3A=0, PORTG &= ~(1<<PG5) (D4=LEFT_EN=PG5), PORTH &= ~(1<<PH5) (D8=RIGHT_EN=PH5)." },
+
+  { sessionIndex:2, order:3,  weight:2, bibleRef:"P3·S11.3",
+    text:"In robot_oda_firmware.ino setup(): wdt_disable() first, then Wire.begin(), Wire.setClock(400000), init_encoders(), init_motor_pwm(), init_imu(), init_tx_queue(). Hardware WDT: wdt_enable(WDTO_8S) — this is 8 seconds not 1 second. Add 5-second boot grace period before heartbeat watchdog activates." },
+
+  { sessionIndex:2, order:4,  weight:2, bibleRef:"P3·S11.3",
+    text:"In robot_oda_firmware.ino loop(): main 10ms loop structure: Step1=atomic encoder read (noInterrupts/interrupts), Step2=Q16.16 fixed-point odometry, Step3=read IMU, Step4=serial RX bounded 300µs, Step5=software watchdogs (cmd_vel 500ms + heartbeat 500ms), Step6=motor output, Step7=encoder fault check, Step8=enqueue TX packets, Step9=tx_drain()." },
+
+  { sessionIndex:2, order:5,  weight:2, bibleRef:"P3·S11.3",
+    text:"Compile full firmware: arduino-cli compile --fqbn arduino:avr:mega:cpu=atmega2560 ~/robot_oda_firmware/. ZERO errors required. Take screenshot of clean compile output. Commit all firmware files to Git." },
+
+  // ── Session 4 — Safety Node + Serial Node ────────────────────
+  { sessionIndex:3, order:0,  weight:3, bibleRef:"P3·S9",
+    text:"Write safety_node.py from S9 Node 3. STOP_DIST_M=0.35 (NOT 0.30 — audit fix). SLOW_DIST_M=0.70. LiDAR governs exclusively if lidar_min_dist < 1.0m. Kinect contributes only in 1.0–3.0m range. _arc_min() helper scans each LaserScan message within half_arc_deg." },
+
+  { sessionIndex:3, order:1,  weight:3, bibleRef:"P3·S9",
+    text:"In safety_node.py enforce() method: implement turn-in-place logic. If abs(linear.x)<0.01 AND abs(angular.z)>0.01 (turning-in-place): only scale angular.z if lidar_tight_min (±30° arc) <= SLOW_DIST_M. Otherwise angular.z passes unrestricted. Forward motion: scale BOTH linear and angular with same factor." },
+
+  { sessionIndex:3, order:2,  weight:2, bibleRef:"P3·S9",
+    text:"In safety_node.py: add sensor timeout detection. If (now - last_lidar_time) > 1.0s: log 'LiDAR data timeout — STOP' and publish zero Twist (safety-critical). If (now - last_kinect_time) > 1.0s: set kinect_min=inf (degrade gracefully, not a stop). LiDAR loss is a hard stop; Kinect loss is graceful degradation." },
+
+  { sessionIndex:3, order:3,  weight:3, bibleRef:"P3·S9",
+    text:"Write serial_node.py from S9 Node 4. CRITICAL QoS fix: /odom and /imu/data publishers must use ReliabilityPolicy.RELIABLE (not BEST_EFFORT). EKF node default subscriber is RELIABLE — mismatch = silent failure over Zenoh. /scan and /kinect/scan subscribers use BEST_EFFORT (matches rplidar_ros publisher)." },
+
+  { sessionIndex:3, order:4,  weight:2, bibleRef:"P3·S9",
+    text:"In serial_node.py: heartbeat forwarding. Subscribe to /robot_heartbeat (RELIABLE QoS, UInt8 message). In callback: build heartbeat packet (0x05, 1 byte payload = seq & 0xFF). Use serial_lock threading.Lock() to write. This is the critical link — Arduino watchdog depends on this forwarding." },
+
+  // ── Session 5 — Protocol Helpers + Final Compile ─────────────
+  { sessionIndex:4, order:0,  weight:2, bibleRef:"P3·S11.3",
+    text:"Write protocol.h/protocol.cpp from S11.3. crc8(): polynomial 0x07, init 0x00, over [TYPE][LEN][PAYLOAD]. ntoh_float(): safe memcpy byte-swap — NOT pointer casting (violates C strict aliasing). hton_float(): reverse byte-swap for Arduino TX. After deserialising any float, always check: isnan(val)||isinf(val) → reject packet." },
+
+  { sessionIndex:4, order:1,  weight:2, bibleRef:"P3·S11.3",
+    text:"Write build functions in protocol.cpp: build_encoder_packet() (TYPE=0x01, 12 bytes, int32+int32+uint32 big-endian), build_imu_packet() (TYPE=0x02, 24 bytes, 6×float big-endian), build_battery_packet() (TYPE=0x03, 4 bytes, float), build_fault_packet() (TYPE=0x04, 1 byte, fault_flags uint8)." },
+
+  { sessionIndex:4, order:2,  weight:2, bibleRef:"P3·S11.3",
+    text:"Write tx_queue.h/tx_queue.cpp from S5.6 firmware section. 4-slot circular queue, max packet 30 bytes. tx_enqueue(): if queue full, increment tx_overflow_count and return false — NEVER block. tx_drain(): check Serial.availableForWrite() before each write — NEVER call Serial.write() without checking space first." },
+
+  { sessionIndex:4, order:3,  weight:1, bibleRef:"P3·S11.3",
+    text:"Final compile check of ENTIRE firmware project: arduino-cli compile --fqbn arduino:avr:mega:cpu=atmega2560 ~/robot_oda_firmware/. Every single file: config.h, encoders.cpp, motors.cpp, firmware.ino, protocol.cpp, faults.cpp, tx_queue.cpp, power.cpp, imu.cpp. ZERO errors, ZERO warnings." },
+
+  { sessionIndex:4, order:4,  weight:1, bibleRef:"P3·S11",
+    text:"Final Git commit for Track C handoff to Sadnan: push all firmware files on branch track-c-firmware-safety. Tag the commit 'firmware-compile-clean'. Post compile screenshot in team dashboard Notes. Notify Sadnan via Discord that handoff is ready." },
+];
   };
 
   const TEAM_TASKS = [
-    { text:'Phase 5: Zenoh bridge full validation', weight:2, member:'team', bibleRef:'T.1', sessionIndex:5 },
-    { text:'Phase 6: Safety system test suite', weight:3, member:'team', bibleRef:'T.2', sessionIndex:6 },
-    { text:'Phase 7: SLAM mapping run', weight:2, member:'team', bibleRef:'T.3', sessionIndex:7 },
-    { text:'Phase 8: Autonomous navigation test', weight:3, member:'team', bibleRef:'T.4', sessionIndex:8 }
-  ];
+  { text:"P0·S2 — Hardware bench work: All components sourced, wired, and verified. Sadnan measures wheel dimensions. All USB devices confirmed with lsusb.", bibleRef:"P0·S2", member:"sadnan", weight:3 },
+  { text:"P1·S3 — Jetson OS: Ubuntu 20.04 flashed, configured, ZRAM+swap active, jetson_clocks set. SSH accessible.", bibleRef:"P1·S3", member:"sadnan", weight:2 },
+  { text:"P2·S7 — Network: Tailscale direct link confirmed on both machines. Zenoh config files written by Akib with correct Tailscale IPs.", bibleRef:"P2·S7", member:"akib", weight:2 },
+  { text:"P3·S11 — Arduino firmware: All files written by Akib, zero-error compile confirmed, handed off to Sadnan via Git.", bibleRef:"P3·S11", member:"akib", weight:3 },
+  { text:"P3·S9 — Safety node + serial node: Written by Akib, QoS and heartbeat logic verified, committed to Git.", bibleRef:"P3·S9", member:"akib", weight:3 },
+  { text:"P4·S5 — Docker containers: Jetson container built and running. Laptop containers built by Tazin.", bibleRef:"P4·S5", member:"tazin", weight:3 },
+  { text:"P4·S7 — Zenoh configs written: nav2_params.yaml with best_effort QoS on /scan, ekf_params.yaml, slam_params.yaml all completed by Tazin.", bibleRef:"P4·S7", member:"tazin", weight:3 },
+  { text:"P5·S13 — Unit tests: All 6 Jetson nodes publishing at correct rates. TF chain verified. Motor drive test passed.", bibleRef:"P5·S13", member:"sadnan", weight:2 },
+  { text:"P5·S13 — Turtlebot3 sim test: Tazin confirms Nav2 + SLAM works against simulation before connecting to physical robot.", bibleRef:"P5·S13", member:"tazin", weight:2 },
+  { text:"P6·S7 — SYNC SESSION: Tazin starts Zenoh router, Sadnan starts Jetson container. All topics visible on laptop. /odom and /scan data flowing.", bibleRef:"P6·S7", member:"team", weight:3 },
+  { text:"P6·S8 — Safety validation: STOP zone, SLOW zone, turn-in-place, sensor timeout, heartbeat timeout all tested and confirmed.", bibleRef:"P6·S8", member:"sadnan", weight:3 },
+  { text:"P8·S13 — SLAM map built: Full deployment environment mapped. Map saved. Localization tested.", bibleRef:"P8·S13", member:"sadnan", weight:2 },
+  { text:"P8·S13 — Autonomous navigation: 2D Nav Goal tested. Robot navigates without collision. Safety overrides work during autonomous mode.", bibleRef:"P8·S13", member:"sadnan", weight:3 },
+  { text:"P8·S9 — Final calibration: 1.0m straight drive = 1.0m ±0.02m odometry. 360° rotation = 6.28 ±0.1 rad. Reflash if outside tolerance.", bibleRef:"P8·S9", member:"sadnan", weight:2 },
+  { text:"P8·S9 — Full verification checklist: All 35+ items in Section 9 checklist passed. robot_oda v1.0 declared deployment-ready.", bibleRef:"P8·S9", member:"team", weight:2 },
+];
 
-  const HANDOFF_SEEDS = {
-    sadnan: [
-      { kind:'Files', text:'Collect final Zenoh .json5 config bundle from Akib', weight:2 },
-      { kind:'Files', text:'Collect nav2/ekf/slam parameter files from Tazin', weight:2 },
-      { kind:'General', text:'Confirm both Track B and C handoffs are merged before final integration', weight:3 }
-    ],
-    tazin: [
-      { kind:'Files', text:'Deliver nav2_params.yaml, ekf_params.yaml, and slam_params.yaml to Sadnan', weight:2 },
-      { kind:'Test', text:'Share docker build proof for zenoh_router/nav2_slam/rviz2 images', weight:2 },
-      { kind:'General', text:'Notify Sadnan when laptop_bringup.launch.py is integration-ready', weight:1 }
-    ],
-    akib: [
-      { kind:'Files', text:'Deliver Zenoh config files and firmware sources to Sadnan', weight:2 },
-      { kind:'Test', text:'Send arduino-cli compile output showing zero errors', weight:2 },
-      { kind:'General', text:'Confirm safety_node.py and serial_node.py are ready for deployment handoff', weight:1 }
-    ]
+  const SADNAN_HANDOFFS = [
+  { text:"[FROM AKIB] jetson_zenoh_config.json5 — client config with correct Laptop Tailscale IP", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] laptop_zenoh_router_config.json5 — router config with correct IP", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] rmw_zenoh_config.json5 — used by all ROS 2 nodes", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] config.h — all pin assignments, verified against ATmega2560 datasheet", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] encoders.cpp — INT3/INT2 for left, PCINT0 for right, zero compile errors", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] motors.cpp — Timer3+Timer4, MOTOR_PWM_TOP unified", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] robot_oda_firmware.ino — INT4_vect E-stop, EICRB, WDTO_8S", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] protocol.h/cpp — crc8, ntoh_float, packet builders", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] tx_queue.h/cpp — 4-slot non-blocking TX queue", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] safety_node.py — STOP=0.35m, SLOW=0.70m, turn-in-place logic", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] serial_node.py — /odom RELIABLE, heartbeat forwarding", type:"Files", from:"akib" },
+  { text:"[FROM AKIB] Compile screenshot showing ZERO errors — mandatory gate check", type:"Test", from:"akib" },
+  { text:"[FROM TAZIN] nav2_params.yaml — qos_policy_reliability: best_effort on /scan confirmed", type:"Files", from:"tazin" },
+  { text:"[FROM TAZIN] ekf_params.yaml — tuned and tested against Turtlebot3 sim", type:"Files", from:"tazin" },
+  { text:"[FROM TAZIN] slam_params.yaml — indoor environment settings", type:"Files", from:"tazin" },
+  { text:"[FROM TAZIN] laptop_bringup.launch.py — Nav2 launch verified", type:"Files", from:"tazin" },
+  { text:"[FROM TAZIN] All laptop Dockerfiles building cleanly on Tazin's machine", type:"Test", from:"tazin" },
+  { text:"[FROM TAZIN] robot_oda.rviz config — all displays configured", type:"Files", from:"tazin" },
+];
+    const TAZIN_HANDOFFS = [
+  { text:"[SEND TO SADNAN] nav2_params.yaml — must include qos_policy_reliability: best_effort for /scan", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] ekf_params.yaml — odom0 and imu0 config arrays complete", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] slam_params.yaml — indoor corridor settings", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] laptop_bringup.launch.py — launches EKF + SLAM + Nav2", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] docker-compose.yml — all 3 laptop containers", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] zenoh_router Dockerfile — pinned to Zenoh 0.11.0", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] nav2_slam Dockerfile + entrypoint.sh", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] rviz2 Dockerfile + entrypoint.sh", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] robot_oda.rviz config file", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] Turtlebot3 sim test result — Nav2 + SLAM working confirmation", type:"Test", to:"sadnan" },
+];
+    const AKIB_HANDOFFS = [
+  { text:"[SEND TO SADNAN] jetson_zenoh_config.json5 — verify Tailscale IP is correct before sending", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] laptop_zenoh_router_config.json5", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] rmw_zenoh_config.json5", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] config.h — include physically measured wheel values from Sadnan", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] encoders.cpp — confirm PCINT0_vect not PCINT2_vect", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] motors.cpp", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] robot_oda_firmware.ino", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] protocol.h + protocol.cpp", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] tx_queue.h + tx_queue.cpp", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] safety_node.py", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] serial_node.py", type:"Files", to:"sadnan" },
+  { text:"[SEND TO SADNAN] Arduino compile screenshot — zero errors proof", type:"Test", to:"sadnan" },
+];
   };
     dbOnce('initialized', val => {
     if (val && !forceSeed) return; // Already seeded
