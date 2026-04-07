@@ -1592,7 +1592,7 @@ function sortUpcomingEntries(tasks) {
     });
 }
   function renderUpcoming(tasks) {
-  const open = sortUpcomingEntries(tasks);
+  const open = sortUpcomingEntries(tasks || {});
   latestUpcomingEntries = open;
   document.getElementById('upcomingCount').textContent = open.length;
   renderTaskList('upcomingList', open.slice(0,5), 'upcoming', true);
@@ -2263,34 +2263,23 @@ function loadTeamPage() {
     });
   });
 
-  // Overall team progress (3-member aggregate weighted formula)
-  dbOn('tasks', allTasks => {
-    const members = ['sadnan', 'tazin', 'akib'];
-    const taskWeight = task => {
-      const w = Number(task?.weight);
-      return Number.isFinite(w) && w > 0 ? w : 1;
-    };
-
-    let totalDoneWeight = 0;
-    let totalUpcomingWeight = 0;
-
-    members.forEach(member => {
-      const memberTasks = allTasks?.[member] || {};
-      const doneTasks = Object.values(memberTasks.doneSession || {});
-      const upcomingTasks = Object.values(memberTasks.upcoming || {});
-
-      totalDoneWeight += doneTasks.reduce((sum, task) => sum + taskWeight(task), 0);
-      totalUpcomingWeight += upcomingTasks.reduce((sum, task) => sum + taskWeight(task), 0);
+  // Whole Project Progress — weighted average across all three members
+  dbOnce('tasks', allMemberTasks => {
+    let totalW = 0, doneW = 0;
+    ['sadnan','tazin','akib'].forEach(m => {
+      const mt = allMemberTasks?.[m] || {};
+      const up = Object.values(mt.upcoming  || {});
+      const dn = Object.values(mt.doneTasks || {});
+      totalW += [...up, ...dn].reduce((s,t) => s + (t.weight||1), 0);
+      doneW  += dn.reduce((s,t) => s + (t.weight||1), 0);
     });
-
-    const totalWeight = totalDoneWeight + totalUpcomingWeight;
-    const aggregatePct = totalWeight > 0 ? Math.round((totalDoneWeight / totalWeight) * 100) : 0;
+const pct = totalW > 0 ? Math.round((doneW / totalW) * 100) : 0;
     const circ = document.getElementById('teamChartCircle');
-    const pct = document.getElementById('teamChartPct');
+    if (circ) circ.style.strokeDashoffset = 213.6 - (213.6 * pct / 100);
+    const pctEl = document.getElementById('teamChartPct');
+    if (pctEl) pctEl.textContent = pct + '%';
     const bar = document.getElementById('teamProgressBar');
-    if (circ) circ.style.strokeDashoffset = 213.6 - (213.6 * aggregatePct / 100);
-    if (pct) pct.textContent = aggregatePct + '%';
-    if (bar) bar.style.width = aggregatePct + '%';
+    if (bar) bar.style.width = pct + '%';
   });
 
   // Team targets
@@ -2387,28 +2376,28 @@ function saveMemberDirection() {
 }
 
 function leaderAddTask() {
-  const member = document.getElementById('taskMember').value;
-  const text = document.getElementById('taskDesc').value.trim();
-  const weight = parseInt(document.getElementById('taskWeight').value);
+  const member  = document.getElementById('taskMember').value;
+  const text    = document.getElementById('taskDesc').value.trim();
+  const weight  = parseInt(document.getElementById('taskWeight').value);
   if (!text) return;
 
   const task = {
     text,
-    bibleRef: 'LEADER',
-    sessionIndex: -1,
     weight,
-    order: Date.now(),
-    done: false,
     member,
+    bibleRef: '',
+    sessionIndex: null,
+    order: -1,
+    done: false,
     created: Date.now()
   };
 
   if (member === 'team') {
     dbPush('teamTasks/upcoming', task);
   } else {
+    // Always goes to upcoming tasks — appears at top via order=-1
     dbPush(`tasks/${member}/upcoming`, task);
-    // Also add to team upcoming for visibility
-    dbPush('teamTasks/upcoming', task);
+    dbPush('teamTasks/upcoming', { ...task });
   }
   document.getElementById('taskDesc').value = '';
   closeModal('modalAddTasks');
