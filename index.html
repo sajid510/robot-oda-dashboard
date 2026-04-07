@@ -268,7 +268,15 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .solved-post{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px;margin-bottom:8px;font-size:11px}
 .solved-post-header{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;color:var(--green)}
 .solved-solution{background:rgba(16,185,129,.1);border-radius:6px;padding:6px 8px;margin-top:6px;font-size:11px;color:var(--green2)}
-
+.leader-action-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
+.leader-action-title{font-size:11px;letter-spacing:1px;color:var(--text2);margin-bottom:10px}
+.leader-action-list{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto}
+.leader-action-item{display:flex;align-items:flex-start;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px}
+.leader-action-text{font-size:11px;color:var(--text2);line-height:1.4;flex:1}
+.file-chip{font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(34,211,238,.12);color:var(--cyan2)}
+.note-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative}
+.note-open-btn{width:100%;text-align:left;background:none;border:none;color:inherit;cursor:pointer}
+.viewer-content{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;min-height:200px;max-height:70vh;overflow:auto}
 /* ── PIN SCREEN ── */
 .pin-screen{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:500;flex-direction:column;gap:24px}
 .pin-screen.show{display:flex}
@@ -666,6 +674,25 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     </div>
     <div style="font-size:10px;color:var(--text3);margin-top:12px">Weighted score: tasks completed × difficulty × pace factor</div>
   </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:14px">
+    <div class="leader-action-card">
+      <div class="leader-action-title">📁 Leader File Storage Control</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn-sm" onclick="openModal('modalLeaderFiles')">Manage Files</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3)">Upload, preview, and remove files for My Notes and Team Knowledge Base.</div>
+    </div>
+    <div class="leader-action-card">
+      <div class="leader-action-title">🧹 Task Data Reset</div>
+      <button class="btn-sm danger" onclick="leaderResetAllTaskData()">Reset All Data</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">Resets upcoming tasks, completed tasks, and all member progress to zero.</div>
+    </div>
+    <div class="leader-action-card">
+      <div class="leader-action-title">🗃️ Saved Solved Issues Control</div>
+      <button class="btn-sm" onclick="openModal('modalLeaderSolvedIssues')">Manage Saved Issues</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">Leader can delete any solved issue from the saved archive.</div>
+    </div>
+  </div>
 </div>
 </div><!-- /pageLeader -->
 
@@ -831,7 +858,15 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div id="notesList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-height:420px;overflow-y:auto"></div>
 </div>
 </div>
-
+<!-- Fullscreen Viewer -->
+<div class="overlay" id="modalViewer">
+<div class="modal wide" style="max-width:95vw;max-height:95vh">
+  <button class="modal-close" onclick="closeModal('modalViewer')">&times;</button>
+  <div class="modal-title" id="viewerTitle">Viewer</div>
+  <div class="viewer-content" id="viewerContent"></div>
+</div>
+</div>
+  
 <!-- Team Notes Modal -->
 <div class="overlay" id="modalTeamNotes">
 <div class="modal wide">
@@ -843,7 +878,43 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div id="teamNotesList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-height:420px;overflow-y:auto"></div>
 </div>
 </div>
+<!-- Leader Files -->
+<div class="overlay" id="modalLeaderFiles">
+<div class="modal wide">
+  <button class="modal-close" onclick="closeModal('modalLeaderFiles')">&times;</button>
+  <div class="modal-title">📁 Leader File Storage Manager</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div>
+      <label class="form-label">Upload to My Notes Files</label>
+      <input type="file" class="form-input" id="leaderMyFileInput" onchange="leaderUploadFile('my', this.files[0])">
+    </div>
+    <div>
+      <label class="form-label">Upload to Team Knowledge Base Files</label>
+      <input type="file" class="form-input" id="leaderTeamFileInput" onchange="leaderUploadFile('team', this.files[0])">
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+    <div>
+      <div class="leader-action-title">My Notes Files</div>
+      <div class="leader-action-list" id="leaderMyFilesList"></div>
+    </div>
+    <div>
+      <div class="leader-action-title">Team Knowledge Base Files</div>
+      <div class="leader-action-list" id="leaderTeamFilesList"></div>
+    </div>
+  </div>
+</div>
+</div>
 
+<!-- Leader Solved Issues -->
+<div class="overlay" id="modalLeaderSolvedIssues">
+<div class="modal wide">
+  <button class="modal-close" onclick="closeModal('modalLeaderSolvedIssues')">&times;</button>
+  <div class="modal-title">🗃️ Leader Solved Issues Manager</div>
+  <div class="leader-action-list" id="leaderSolvedIssueList"></div>
+</div>
+</div>
+  
 <!-- Team Upcoming Modal -->
 <div class="overlay" id="modalTeamUpcoming">
 <div class="modal">
@@ -972,7 +1043,10 @@ const ADMIN_PIN = '2580';
 // ── STATE ─────────────────────────────────────────────────────────
 let db, currentUser = null, leaderUnlocked = false;
 let fbReady = false;
-
+let allIssuesCache = {};
+let myNoteFilesCache = {};
+let teamNoteFilesCache = {};
+  
 // Default member goals
 const DEFAULT_GOALS = {
   sadnan: 'Track A: Hardware + Embedded + Final Integration lead',
@@ -1313,14 +1387,25 @@ function initDashboard() {
 
   // Issues (all users see all issues)
   dbOn('issues', issues => {
-    renderIssueFeed(issues || {});
+    allIssuesCache = issues || {};
+    renderIssueFeed(allIssuesCache);
+    renderLeaderSolvedIssuesManager();
   });
 
   // Notes
   dbOn(`notes/${u}`, notes => {
     renderNotes(notes || {});
   });
-
+dbOn('noteFiles/my', files => {
+    myNoteFilesCache = files || {};
+    renderNoteFiles('notesList', myNoteFilesCache, 'my');
+    renderLeaderFileLists();
+  });
+  dbOn('noteFiles/team', files => {
+    teamNoteFilesCache = files || {};
+    renderNoteFiles('teamNotesList', teamNoteFilesCache, 'team');
+    renderLeaderFileLists();
+  });
   // Charts
   dbOn(`tasks/${u}`, all => { updateCharts(all || {}); });
 
@@ -1626,7 +1711,35 @@ function buildSolvedPost(issue) {
     ${solution ? `<div class="solved-solution">&#128161; ${escHtml(solution.text)} — by ${solution.author.charAt(0).toUpperCase()+solution.author.slice(1)}</div>` : ''}`;
   return div;
 }
+function renderLeaderSolvedIssuesManager() {
+  const list = document.getElementById('leaderSolvedIssueList');
+  if (!list) return;
+  const solvedEntries = Object.entries(allIssuesCache).filter(([,v]) => v && v.solved);
+  if (!solvedEntries.length) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--text3)">No solved issues saved.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  solvedEntries.sort((a,b)=>(b[1].solvedAt||0)-(a[1].solvedAt||0)).forEach(([key, issue]) => {
+    const row = document.createElement('div');
+    row.className = 'leader-action-item';
+    row.innerHTML = `
+      <div class="leader-action-text">
+        <div style="font-size:10px;color:var(--green)">Solved • ${escHtml(issue.section || 'General')}</div>
+        <div>${escHtml((issue.body || '').slice(0,120))}</div>
+      </div>
+      <button class="btn-sm danger" onclick="leaderDeleteSolvedIssue('${key}')">Delete</button>`;
+    list.appendChild(row);
+  });
+}
 
+function leaderDeleteSolvedIssue(issueKey) {
+  if (currentUser !== 'sadnan') return;
+  if (!confirm('Delete this solved issue permanently?')) return;
+  dbRemove(`issues/${issueKey}`);
+}
+
+  
 function addComment(issueKey) {
   const inp = document.getElementById('cmt_' + issueKey);
   if (!inp || !inp.value.trim()) return;
@@ -1651,8 +1764,8 @@ function markComment(issueKey, commentKey, field, value) {
 }
 
 function escHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1669,10 +1782,12 @@ function renderNotes(notes) {
   list.innerHTML = '';
   entries.forEach(([key, note]) => {
     const div = document.createElement('div');
-    div.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative';
+    div.className = 'note-card';
     div.innerHTML = `
-      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--purple2)">${escHtml(note.title||'Note')}</div>
-      <textarea style="width:100%;background:transparent;border:none;color:var(--text2);font-size:11px;resize:none;outline:none;min-height:80px;font-family:inherit;line-height:1.6" onblur="saveNote('${key}',this.parentElement)">${escHtml(note.text)}</textarea>
+      <button class="note-open-btn" onclick="openNoteViewer('${escAttr(note.title||'Note')}','${escAttr(note.text||'')}')">
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--purple2)">${escHtml(note.title||'Note')}</div>
+      </button>
+      <textarea style="width:100%;background:transparent;border:none;color:var(--text2);font-size:11px;resize:none;outline:none;min-height:80px;font-family:inherit;line-height:1.6" onblur="saveNote('${key}',this.parentElement)">${escHtml(note.text || '')}</textarea>
       <button onclick="deleteNote('${key}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="Delete">&times;</button>`;
     list.appendChild(div);
   });
@@ -1693,6 +1808,48 @@ function saveNote(key, div) {
 }
 function deleteNote(key) {
   if (confirm('Delete this note?')) dbRemove(`notes/${currentUser}/${key}`);
+}
+  function renderNoteFiles(containerId, files, scope) {
+  const list = document.getElementById(containerId);
+  if (!list) return;
+  list.querySelectorAll('.file-card').forEach(n => n.remove());
+  Object.entries(files).forEach(([key,file]) => {
+    const div = document.createElement('div');
+    div.className = 'note-card file-card';
+    div.innerHTML = `
+      <button class="note-open-btn" onclick="openFileViewer('${scope}','${key}')">
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--cyan2)">📎 ${escHtml(file.name || 'File')}</div>
+        <div class="file-chip">${escHtml(file.type || 'unknown')}</div>
+      </button>`;
+    list.insertBefore(div, list.lastElementChild || null);
+  });
+}
+
+function openNoteViewer(title, text) {
+  document.getElementById('viewerTitle').textContent = '📝 ' + decodeURIComponent(title);
+  document.getElementById('viewerContent').innerHTML = `<div style="white-space:pre-wrap;line-height:1.7;font-size:14px">${escHtml(decodeURIComponent(text || ''))}</div>`;
+  openModal('modalViewer');
+}
+
+function openFileViewer(scope, key) {
+  const file = (scope === 'team' ? teamNoteFilesCache : myNoteFilesCache)[key];
+  if (!file) return;
+  document.getElementById('viewerTitle').textContent = '📁 ' + (file.name || 'File');
+  const content = document.getElementById('viewerContent');
+  if ((file.type || '').startsWith('image/')) {
+    content.innerHTML = `<img src="${file.data}" alt="${escHtml(file.name||'image')}" style="max-width:100%;height:auto;border-radius:8px">`;
+  } else if ((file.type || '').startsWith('text/') || (file.type || '').includes('json')) {
+    content.innerHTML = `<iframe src="${file.data}" style="width:100%;height:65vh;border:none;border-radius:8px;background:#fff"></iframe>`;
+  } else if (file.type === 'application/pdf') {
+    content.innerHTML = `<iframe src="${file.data}" style="width:100%;height:65vh;border:none;border-radius:8px;background:#fff"></iframe>`;
+  } else {
+    content.innerHTML = `<div style="font-size:12px;color:var(--text2)">Preview unavailable for this type.</div><a href="${file.data}" download="${file.name}" class="btn-primary" style="display:inline-block;margin-top:10px;text-decoration:none">Download File</a>`;
+  }
+  openModal('modalViewer');
+}
+
+function escAttr(str) {
+  return encodeURIComponent(str || '');
 }
 
 // Team notes
@@ -1751,9 +1908,11 @@ function renderTeamNotes(notes) {
   list.innerHTML = '';
   Object.entries(notes).forEach(([key, note]) => {
     const div = document.createElement('div');
-    div.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative';
+    div.className = 'note-card';
     div.innerHTML = `
-      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--cyan2)">${escHtml(note.title||'Team Note')}</div>
+      <button class="note-open-btn" onclick="openNoteViewer('${escAttr(note.title||'Team Note')}','${escAttr(note.text||'')}')">
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--cyan2)">${escHtml(note.title||'Team Note')}</div>
+      </button>
       <textarea style="width:100%;background:transparent;border:none;color:var(--text2);font-size:11px;resize:none;outline:none;min-height:80px;font-family:inherit;line-height:1.6" onblur="saveTeamNote('${key}',this.parentElement)">${escHtml(note.text)}</textarea>`;
     list.appendChild(div);
   });
@@ -1770,7 +1929,50 @@ function saveTeamNote(key, div) {
   const ta = div.querySelector('textarea');
   if (ta) dbUpdate(`teamNotes/${key}`, { text: ta.value });
 }
+function leaderUploadFile(scope, file) {
+  if (currentUser !== 'sadnan' || !file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const path = scope === 'team' ? 'noteFiles/team' : 'noteFiles/my';
+    dbPush(path, {
+      name: file.name,
+      type: file.type || 'application/octet-stream',
+      size: file.size || 0,
+      data: reader.result,
+      created: Date.now()
+    });
+  };
+  reader.readAsDataURL(file);
+}
 
+function renderLeaderFileLists() {
+  const myList = document.getElementById('leaderMyFilesList');
+  const teamList = document.getElementById('leaderTeamFilesList');
+  if (!myList || !teamList) return;
+  const build = (files, scope) => {
+    const entries = Object.entries(files || {});
+    if (!entries.length) return '<div style="font-size:11px;color:var(--text3)">No files uploaded.</div>';
+    return entries.map(([key,file]) => `
+      <div class="leader-action-item">
+        <div class="leader-action-text">
+          <div>${escHtml(file.name || 'File')}</div>
+          <div style="font-size:10px;color:var(--text3)">${Math.round((file.size || 0)/1024)} KB</div>
+        </div>
+        <button class="btn-sm" onclick="openFileViewer('${scope}','${key}')">Open</button>
+        <button class="btn-sm danger" onclick="leaderDeleteFile('${scope}','${key}')">Delete</button>
+      </div>
+    `).join('');
+  };
+  myList.innerHTML = build(myNoteFilesCache, 'my');
+  teamList.innerHTML = build(teamNoteFilesCache, 'team');
+}
+
+function leaderDeleteFile(scope, key) {
+  if (currentUser !== 'sadnan') return;
+  const path = scope === 'team' ? `noteFiles/team/${key}` : `noteFiles/my/${key}`;
+  dbRemove(path);
+}
+  
 // ═══════════════════════════════════════════════════════════════════
 // CHARTS
 // ═══════════════════════════════════════════════════════════════════
@@ -1915,6 +2117,8 @@ function loadLeaderPage() {
   // Prefill targets
   dbOnce('teamTargets/next', v => { if(v) document.getElementById('inputNextTarget').value = v; });
   dbOnce('teamTargets/final', v => { if(v) document.getElementById('inputFinalTarget').value = v; });
+   renderLeaderFileLists();
+  renderLeaderSolvedIssuesManager();
 }
 
 function saveTeamDirection() {
@@ -1953,6 +2157,23 @@ function leaderAddTask() {
   document.getElementById('taskDesc').value = '';
   closeModal('modalAddTasks');
 }
+  function leaderResetAllTaskData() {
+  if (currentUser !== 'sadnan') return;
+  const pin = prompt('Enter leader dashboard PIN to reset all task data:');
+  if (pin !== ADMIN_PIN) { alert('Invalid PIN. Reset canceled.'); return; }
+  if (!confirm('Reset ALL task data and progress to zero? This cannot be undone.')) return;
+  const resets = [
+    dbRemove('tasks/sadnan'),
+    dbRemove('tasks/tazin'),
+    dbRemove('tasks/akib'),
+    dbRemove('teamTasks'),
+    dbSet('memberProgress/sadnan', 0),
+    dbSet('memberProgress/tazin', 0),
+    dbSet('memberProgress/akib', 0)
+  ];
+  Promise.all(resets).then(() => alert('All task data has been reset.'));
+}
+
 
 // ═══════════════════════════════════════════════════════════════════
 // SEED INITIAL TASKS (called once if no data)
