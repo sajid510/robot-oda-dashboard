@@ -2207,11 +2207,11 @@ function updateCharts(allTasks) {
   const activeSessionDone = doneSession.filter(task => (
     !task?.isSessionCompletion && normalizedSession(task) === activeSessionIndex
   ));
-  const doneWeight = activeSessionDone.reduce((sum, task) => sum + weightedValue(task), 0);
-  const remainingWeight = activeSessionUpcoming.reduce((sum, task) => sum + weightedValue(task), 0);
-  const totalWeight = doneWeight + remainingWeight;
-  const pct2 = totalWeight > 0 ? Math.round((doneWeight / totalWeight) * 100) : 0;
-  setChart('chart2', pct2, `S${activeSessionIndex} weight ${doneWeight}/${totalWeight}`, 'var(--cyan)');
+  const activeDoneWeight = activeSessionDone.reduce((sum, task) => sum + weightedValue(task), 0);
+  const activeRemainingWeight = activeSessionUpcoming.reduce((sum, task) => sum + weightedValue(task), 0);
+  const activeTotalWeight = activeDoneWeight + activeRemainingWeight;
+  const pct2 = activeTotalWeight > 0 ? Math.round((activeDoneWeight / activeTotalWeight) * 100) : 0;
+  setChart('chart2', pct2, `S${activeSessionIndex} weight ${activeDoneWeight}/${activeTotalWeight}`, 'var(--cyan)');
 
 
   // Update member progress on team page
@@ -2256,16 +2256,34 @@ function loadTeamPage() {
     });
   });
 
-  // Overall team progress (average of all three)
-  dbOn('memberProgress', vals => {
-    const v = vals || {};
-    const avg = Math.round(((v.sadnan||0) + (v.tazin||0) + (v.akib||0)) / 3);
+  // Overall team progress (3-member aggregate weighted formula)
+  dbOn('tasks', allTasks => {
+    const members = ['sadnan', 'tazin', 'akib'];
+    const taskWeight = task => {
+      const w = Number(task?.weight);
+      return Number.isFinite(w) && w > 0 ? w : 1;
+    };
+
+    let totalDoneWeight = 0;
+    let totalUpcomingWeight = 0;
+
+    members.forEach(member => {
+      const memberTasks = allTasks?.[member] || {};
+      const doneTasks = Object.values(memberTasks.doneSession || {});
+      const upcomingTasks = Object.values(memberTasks.upcoming || {});
+
+      totalDoneWeight += doneTasks.reduce((sum, task) => sum + taskWeight(task), 0);
+      totalUpcomingWeight += upcomingTasks.reduce((sum, task) => sum + taskWeight(task), 0);
+    });
+
+    const totalWeight = totalDoneWeight + totalUpcomingWeight;
+    const aggregatePct = totalWeight > 0 ? Math.round((totalDoneWeight / totalWeight) * 100) : 0;
     const circ = document.getElementById('teamChartCircle');
     const pct = document.getElementById('teamChartPct');
     const bar = document.getElementById('teamProgressBar');
-    if (circ) circ.style.strokeDashoffset = 213.6 - (213.6 * avg / 100);
-    if (pct) pct.textContent = avg + '%';
-    if (bar) bar.style.width = avg + '%';
+    if (circ) circ.style.strokeDashoffset = 213.6 - (213.6 * aggregatePct / 100);
+    if (pct) pct.textContent = aggregatePct + '%';
+    if (bar) bar.style.width = aggregatePct + '%';
   });
 
   // Team targets
