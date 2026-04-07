@@ -1841,11 +1841,17 @@ function deleteNote(key) {
       <button class="note-open-btn" onclick="openFileViewer('${scope}','${key}')">
         <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--cyan2)">📎 ${escHtml(file.name || 'File')}</div>
         <div class="file-chip">${escHtml(file.type || 'unknown')}</div>
-      </button>`;
+       </button>
+      <button onclick="deleteNoteFile('${scope}','${key}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" title="Delete file">&times;</button>`;
     list.insertBefore(div, list.lastElementChild || null);
   });
 }
-
+function deleteNoteFile(scope, key) {
+  if (!confirm('Delete this file?')) return;
+  const path = scope === 'team' ? `noteFiles/team/${key}` : `noteFiles/my/${key}`;
+  dbRemove(path);
+}
+  
 function openNoteViewer(title, text) {
   document.getElementById('viewerTitle').textContent = '📝 ' + decodeURIComponent(title);
   document.getElementById('viewerContent').innerHTML = `<div style="white-space:pre-wrap;line-height:1.7;font-size:14px">${escHtml(decodeURIComponent(text || ''))}</div>`;
