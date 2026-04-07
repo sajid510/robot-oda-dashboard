@@ -197,9 +197,13 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .pie-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
 .chart-label{font-size:10px;color:var(--text2)}
 
-/* ── TECH STRIP ── */
-.tech-strip{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0}
-.tech-tag{font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:4px;padding:2px 7px;color:var(--text3);letter-spacing:.5px}
+/* ── SESSION STRIP ── */
+.session-strip{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0}
+.session-pill{font-size:10px;background:rgba(124,106,247,.15);border:1px solid rgba(124,106,247,.4);border-radius:999px;padding:4px 10px;color:var(--purple);letter-spacing:.4px;cursor:pointer;transition:all .2s}
+.session-pill:hover{background:rgba(124,106,247,.25);border-color:var(--purple2);color:#fff}
+.session-meta{display:grid;gap:8px}
+.session-meta .line{font-size:12px;color:var(--text2)}
+.session-meta .label{color:var(--text3);font-size:11px;letter-spacing:.5px}
 
 /* ── OVERLAYS / MODALS ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
@@ -384,21 +388,8 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
   <div class="deco-line"></div>
 
-  <!-- TECH STRIP -->
-  <div class="tech-strip">
-    <span class="tech-tag">ROS 2 Humble</span>
-    <span class="tech-tag">Jetson Nano</span>
-    <span class="tech-tag">Arduino Mega</span>
-    <span class="tech-tag">Docker</span>
-    <span class="tech-tag">Tailscale</span>
-    <span class="tech-tag">Zenoh</span>
-    <span class="tech-tag">RPLiDAR A1M8</span>
-    <span class="tech-tag">Kinect 1414</span>
-    <span class="tech-tag">Nav2</span>
-    <span class="tech-tag">SLAM</span>
-    <span class="tech-tag">MPU6050</span>
-    <span class="tech-tag">IBT-2</span>
-  </div>
+  <!-- SESSION STRIP -->
+  <div class="session-strip" id="sessionStrip"></div>
 
   <!-- MAIN GRID -->
   <div class="dash-grid">
@@ -864,6 +855,15 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
 </div>
 </div>
+  
+  <!-- Session Modal -->
+<div class="overlay" id="modalSession">
+<div class="modal sm">
+  <button class="modal-close" onclick="closeModal('modalSession')">&times;</button>
+  <div class="modal-title" id="sessionModalTitle">📘 Session</div>
+  <div class="session-meta" id="sessionModalMeta"></div>
+</div>
+</div>
 
 <!-- Notes Modal -->
 <div class="overlay" id="modalNotes">
@@ -1105,6 +1105,30 @@ const DEFAULT_GOALS = {
   sadnan: 'Track A: Hardware + Embedded + Final Integration lead',
   tazin:  'Track B: ROS 2, Nav2, Laptop Docker stack',
   akib:   'Track C: Arduino Firmware + Safety Node + Network configs'
+};
+  const SESSION_DEFINITIONS = {
+  sadnan: [
+    { id:'s1', title:'Session 1 — Hardware', focus:'Chassis, motors, power rails', output:'Base platform assembled' },
+    { id:'s2', title:'Session 2 — Wiring', focus:'Arduino + driver wiring', output:'Verified pin map + continuity' },
+    { id:'s3', title:'Session 3 — Firmware', focus:'Motor + sensor firmware', output:'Stable Arduino firmware build' },
+    { id:'s4', title:'Session 4 — Sensors', focus:'LiDAR + Kinect + IMU hookup', output:'Live sensor streams validated' },
+    { id:'s5', title:'Session 5 — Validation', focus:'Safety + movement tests', output:'Checklist passed on bench tests' },
+    { id:'s6', title:'Session 6 — Integration', focus:'Final merge with ROS stack', output:'Hardware integration signed off' }
+  ],
+  tazin: [
+    { id:'s1', title:'Session 1 — Containers', focus:'Docker image + workspace', output:'Reproducible dev container' },
+    { id:'s2', title:'Session 2 — ROS Setup', focus:'ROS 2 Humble baseline', output:'Core nodes launch reliably' },
+    { id:'s3', title:'Session 3 — Nav Stack', focus:'Nav2 bringup + params', output:'Working navigation pipeline' },
+    { id:'s4', title:'Session 4 — Simulation', focus:'Sim world + test routes', output:'Validated scenarios in sim' },
+    { id:'s5', title:'Session 5 — Zenoh', focus:'Bridge + remote comms', output:'Cross-network message flow' }
+  ],
+  akib: [
+    { id:'s1', title:'Session 1 — Network', focus:'Jetson/laptop network plan', output:'Stable network topology' },
+    { id:'s2', title:'Session 2 — Protocol', focus:'Message framing + checks', output:'Documented protocol baseline' },
+    { id:'s3', title:'Session 3 — Firmware', focus:'Embedded communication loop', output:'Reliable serial exchange' },
+    { id:'s4', title:'Session 4 — Safety', focus:'Failsafe logic + watchdog', output:'Safety controls verified' },
+    { id:'s5', title:'Session 5 — Validation', focus:'End-to-end comm tests', output:'Validation report delivered' }
+  ]
 };
 
 // ── FIREBASE INIT ──────────────────────────────────────────────────
@@ -1399,6 +1423,27 @@ function loadMemberPins() {
 // ═══════════════════════════════════════════════════════════════════
 function openModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+  function renderSessionStrip() {
+  const strip = document.getElementById('sessionStrip');
+  if (!strip) return;
+  const sessions = SESSION_DEFINITIONS[currentUser] || [];
+  if (!sessions.length) {
+    strip.innerHTML = '<span style="font-size:11px;color:var(--text3)">No sessions defined yet</span>';
+    return;
+  }
+  strip.innerHTML = sessions.map(s => `<button class="session-pill" onclick="openSessionModal('${s.id}')">${escHtml(s.title)}</button>`).join('');
+}
+function openSessionModal(sessionId) {
+  const sessions = SESSION_DEFINITIONS[currentUser] || [];
+  const session = sessions.find(s => s.id === sessionId);
+  if (!session) return;
+  document.getElementById('sessionModalTitle').textContent = `📘 ${session.title}`;
+  document.getElementById('sessionModalMeta').innerHTML = `
+    <div class="line"><span class="label">Focus:</span> ${escHtml(session.focus)}</div>
+    <div class="line"><span class="label">Expected Output:</span> ${escHtml(session.output)}</div>
+  `;
+  openModal('modalSession');
+}
 // Close overlays on background click
 document.querySelectorAll('.overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); });
@@ -1410,6 +1455,7 @@ document.querySelectorAll('.overlay').forEach(o => {
 function initDashboard() {
   const u = currentUser;
   document.getElementById('dashMemberName').textContent = u.charAt(0).toUpperCase() + u.slice(1);
+  renderSessionStrip();
 
   // Listen to goal
   dbOn(`goals/${u}`, val => {
@@ -2302,91 +2348,107 @@ function leaderAssignHandoff() {
   closeModal('modalAskHandoff');
 }
 
-function leaderResetAllTaskData() {
-  if (currentUser !== 'sadnan') return;
-  const pin = prompt('Enter leader dashboard PIN to reset all task data:');
-  if (pin !== ADMIN_PIN) { alert('Invalid PIN. Reset canceled.'); return; }
-  if (!confirm('Reset ALL task data and progress to zero? This cannot be undone.')) return;
+function resetAllData() {
   const resets = [
     dbRemove('tasks/sadnan'),
     dbRemove('tasks/tazin'),
     dbRemove('tasks/akib'),
     dbRemove('teamTasks'),
+    dbRemove('handoff'),
     dbSet('memberProgress/sadnan', 0),
     dbSet('memberProgress/tazin', 0),
-    dbSet('memberProgress/akib', 0)
+    dbSet('memberProgress/akib', 0),
+    dbSet('initialized', false)
   ];
-  Promise.all(resets).then(() => alert('All task data has been reset.'));
+  return Promise.all(resets).then(() => seedInitialData(true));
+}
+
+function leaderResetAllTaskData() {
+  if (currentUser !== 'sadnan') return;
+  const pin = prompt('Enter leader dashboard PIN to reset all task data:');
+  if (pin !== ADMIN_PIN) { alert('Invalid PIN. Reset canceled.'); return; }
+  if (!confirm('Reset ALL task data and progress to zero? This cannot be undone.')) return;
+  resetAllData().then(() => alert('All task data has been reset and reseeded.'));
 }
 
 
 // ═══════════════════════════════════════════════════════════════════
 // SEED INITIAL TASKS (called once if no data)
 // ═══════════════════════════════════════════════════════════════════
-function seedInitialData() {
-  dbOnce('initialized', val => {
-    if (val) return; // Already seeded
+function seedInitialData(forceSeed = false) {
+  const USER_TASK_SEEDS = {
+    sadnan: [
+      { text:'Source all BOM components and verify', weight:2, bibleRef:'A.1', sessionIndex:1 },
+      { text:'Wire motors, IBT-2 drivers, encoders, IMU', weight:3, bibleRef:'A.2', sessionIndex:1 },
+      { text:'Measure wheel radius and separation physically', weight:1, bibleRef:'A.3', sessionIndex:1 },
+      { text:'Install udev rules on Jetson host (CH340, Kinect, LiDAR)', weight:1, bibleRef:'A.4', sessionIndex:2 },
+      { text:'Flash Jetson SD card — Ubuntu 20.04 Qengineering image', weight:2, bibleRef:'A.5', sessionIndex:2 },
+      { text:'Run Jetson base config: hostname, SSH, locale', weight:1, bibleRef:'A.6', sessionIndex:2 },
+      { text:'System optimization: ZRAM, swap, jetson_clocks', weight:2, bibleRef:'A.7', sessionIndex:2 },
+      { text:'Install Docker CE on Jetson', weight:1, bibleRef:'A.8', sessionIndex:3 },
+      { text:'Build Jetson Docker image (docker compose build)', weight:3, bibleRef:'A.9', sessionIndex:3 },
+      { text:'Flash Arduino firmware and run bench tests', weight:3, bibleRef:'A.10', sessionIndex:4 },
+      { text:'Sensor integration: all 5 nodes running inside container', weight:3, bibleRef:'A.11', sessionIndex:4 },
+      { text:'Zenoh bridge validation with laptop', weight:2, bibleRef:'A.12', sessionIndex:5 },
+      { text:'Final integration: merge all three tracks', weight:3, bibleRef:'A.13', sessionIndex:6 }
+    ],
+    tazin: [
+      { text:'Install ROS 2 Humble on laptop (Ubuntu 22.04)', weight:2, bibleRef:'B.1', sessionIndex:1 },
+      { text:'Create laptop directory structure ~/robot_oda_laptop/', weight:1, bibleRef:'B.2', sessionIndex:1 },
+      { text:'Write zenoh_router Dockerfile (pinned to 0.11.0)', weight:2, bibleRef:'B.3', sessionIndex:2 },
+      { text:'Write nav2_slam Dockerfile and entrypoint.sh', weight:2, bibleRef:'B.4', sessionIndex:2 },
+      { text:'Write rviz2 Dockerfile', weight:1, bibleRef:'B.5', sessionIndex:2 },
+      { text:'Write docker-compose.yml for all laptop containers', weight:2, bibleRef:'B.6', sessionIndex:2 },
+      { text:'Build and test all laptop containers', weight:2, bibleRef:'B.7', sessionIndex:3 },
+      { text:'Write nav2_params.yaml (add qos best_effort for scan)', weight:3, bibleRef:'B.8', sessionIndex:3 },
+      { text:'Write ekf_params.yaml and slam_params.yaml', weight:2, bibleRef:'B.9', sessionIndex:3 },
+      { text:'Write laptop_bringup.launch.py', weight:2, bibleRef:'B.10', sessionIndex:4 },
+      { text:'Test Nav2 against Turtlebot3 simulation', weight:3, bibleRef:'B.11', sessionIndex:4 },
+      { text:'Configure robot_oda.rviz with all displays', weight:2, bibleRef:'B.12', sessionIndex:5 },
+      { text:'Zenoh bridge test session with Member A', weight:2, bibleRef:'B.13', sessionIndex:5 }
+    ],
+    akib: [
+      { text:'Get Tailscale IPs from Sadnan', weight:1, bibleRef:'C.1', sessionIndex:1 },
+      { text:'Write jetson_zenoh_config.json5 (client, 300ms gossip)', weight:2, bibleRef:'C.2', sessionIndex:1 },
+      { text:'Write laptop_zenoh_router_config.json5 (router, 500ms)', weight:2, bibleRef:'C.3', sessionIndex:1 },
+      { text:'Write rmw_zenoh_config.json5 (client, 300ms)', weight:2, bibleRef:'C.4', sessionIndex:1 },
+      { text:'Write config.h (all pin assignments, fault bits, constants)', weight:3, bibleRef:'C.5', sessionIndex:2 },
+      { text:'Write encoders.cpp (INT3/INT2 for left, PCINT0 for right)', weight:3, bibleRef:'C.6', sessionIndex:2 },
+      { text:'Compile check: arduino-cli compile --fqbn arduino:avr:mega', weight:1, bibleRef:'C.7', sessionIndex:2 },
+      { text:'Write motors.cpp (MOTOR_PWM_TOP unified, Timer3+Timer4)', weight:3, bibleRef:'C.8', sessionIndex:3 },
+      { text:'Write robot_oda_firmware.ino (INT4_vect, EICRB, WDTO_8S)', weight:3, bibleRef:'C.9', sessionIndex:3 },
+      { text:'Write safety_node.py (STOP=0.35m, SLOW=0.70m, turn logic)', weight:3, bibleRef:'C.10', sessionIndex:4 },
+      { text:'Write serial_node.py (/odom RELIABLE, heartbeat forwarding)', weight:3, bibleRef:'C.11', sessionIndex:4 },
+      { text:'Write protocol.h/cpp (crc8, ntoh_float, packet builders)', weight:2, bibleRef:'C.12', sessionIndex:5 },
+      { text:'Write tx_queue.h/cpp (4-slot circular queue, non-blocking)', weight:2, bibleRef:'C.13', sessionIndex:5 },
+      { text:'Final compile check — zero errors required', weight:1, bibleRef:'C.14', sessionIndex:6 }
+    ]
+  };
 
-    const SADNAN_TASKS = [
-      { text:'Source all BOM components and verify', weight:2 },
-      { text:'Wire motors, IBT-2 drivers, encoders, IMU', weight:3 },
-      { text:'Measure wheel radius and separation physically', weight:1 },
-      { text:'Install udev rules on Jetson host (CH340, Kinect, LiDAR)', weight:1 },
-      { text:'Flash Jetson SD card — Ubuntu 20.04 Qengineering image', weight:2 },
-      { text:'Run Jetson base config: hostname, SSH, locale', weight:1 },
-      { text:'System optimization: ZRAM, swap, jetson_clocks', weight:2 },
-      { text:'Install Docker CE on Jetson', weight:1 },
-      { text:'Build Jetson Docker image (docker compose build)', weight:3 },
-      { text:'Flash Arduino firmware and run bench tests', weight:3 },
-      { text:'Sensor integration: all 5 nodes running inside container', weight:3 },
-      { text:'Zenoh bridge validation with laptop', weight:2 },
-      { text:'Final integration: merge all three tracks', weight:3 },
-    ];
-    const TAZIN_TASKS = [
-      { text:'Install ROS 2 Humble on laptop (Ubuntu 22.04)', weight:2 },
-      { text:'Create laptop directory structure ~/robot_oda_laptop/', weight:1 },
-      { text:'Write zenoh_router Dockerfile (pinned to 0.11.0)', weight:2 },
-      { text:'Write nav2_slam Dockerfile and entrypoint.sh', weight:2 },
-      { text:'Write rviz2 Dockerfile', weight:1 },
-      { text:'Write docker-compose.yml for all laptop containers', weight:2 },
-      { text:'Build and test all laptop containers', weight:2 },
-      { text:'Write nav2_params.yaml (add qos best_effort for scan)', weight:3 },
-      { text:'Write ekf_params.yaml and slam_params.yaml', weight:2 },
-      { text:'Write laptop_bringup.launch.py', weight:2 },
-      { text:'Test Nav2 against Turtlebot3 simulation', weight:3 },
-      { text:'Configure robot_oda.rviz with all displays', weight:2 },
-      { text:'Zenoh bridge test session with Member A', weight:2 },
-    ];
-    const AKIB_TASKS = [
-      { text:'Get Tailscale IPs from Sadnan', weight:1 },
-      { text:'Write jetson_zenoh_config.json5 (client, 300ms gossip)', weight:2 },
-      { text:'Write laptop_zenoh_router_config.json5 (router, 500ms)', weight:2 },
-      { text:'Write rmw_zenoh_config.json5 (client, 300ms)', weight:2 },
-      { text:'Write config.h (all pin assignments, fault bits, constants)', weight:3 },
-      { text:'Write encoders.cpp (INT3/INT2 for left, PCINT0 for right)', weight:3 },
-      { text:'Compile check: arduino-cli compile --fqbn arduino:avr:mega', weight:1 },
-      { text:'Write motors.cpp (MOTOR_PWM_TOP unified, Timer3+Timer4)', weight:3 },
-      { text:'Write robot_oda_firmware.ino (INT4_vect, EICRB, WDTO_8S)', weight:3 },
-      { text:'Write safety_node.py (STOP=0.35m, SLOW=0.70m, turn logic)', weight:3 },
-      { text:'Write serial_node.py (/odom RELIABLE, heartbeat forwarding)', weight:3 },
-      { text:'Write protocol.h/cpp (crc8, ntoh_float, packet builders)', weight:2 },
-      { text:'Write tx_queue.h/cpp (4-slot circular queue, non-blocking)', weight:2 },
-      { text:'Final compile check — zero errors required', weight:1 },
-    ];
+  const TEAM_TASKS = [
+    { text:'Phase 5: Zenoh bridge full validation', weight:2, member:'team', bibleRef:'T.1', sessionIndex:5 },
+    { text:'Phase 6: Safety system test suite', weight:3, member:'team', bibleRef:'T.2', sessionIndex:6 },
+    { text:'Phase 7: SLAM mapping run', weight:2, member:'team', bibleRef:'T.3', sessionIndex:7 },
+    { text:'Phase 8: Autonomous navigation test', weight:3, member:'team', bibleRef:'T.4', sessionIndex:8 }
+  ];
 
-    SADNAN_TASKS.forEach(t => dbPush('tasks/sadnan/upcoming', { ...t, done:false, created:Date.now() }));
-    TAZIN_TASKS.forEach(t => dbPush('tasks/tazin/upcoming', { ...t, done:false, created:Date.now() }));
-    AKIB_TASKS.forEach(t => dbPush('tasks/akib/upcoming', { ...t, done:false, created:Date.now() }));
+    dbOnce('initialized', val => {
+    if (val && !forceSeed) return; // Already seeded
 
-    // Team tasks
-    const TEAM_TASKS = [
-      { text:'Phase 5: Zenoh bridge full validation', weight:2, member:'team' },
-      { text:'Phase 6: Safety system test suite', weight:3, member:'team' },
-      { text:'Phase 7: SLAM mapping run', weight:2, member:'team' },
-      { text:'Phase 8: Autonomous navigation test', weight:3, member:'team' },
-    ];
-    TEAM_TASKS.forEach(t => dbPush('teamTasks/upcoming', { ...t, done:false, created:Date.now() }));
+    Object.entries(USER_TASK_SEEDS).forEach(([member, tasks]) => {
+      tasks.forEach((task, order) => {
+        dbPush(`tasks/${member}/upcoming`, {
+          ...task,
+          done: false,
+          created: Date.now(),
+          order
+        });
+      });
+    });
 
+    TEAM_TASKS.forEach((task, order) => {
+      dbPush('teamTasks/upcoming', { ...task, done:false, created:Date.now(), order });
+    });
     ['sadnan','tazin','akib'].forEach(m => dbPush(`handoff/${m}`, { kind:'General', text:'Share current blockers and next action', done:false, weight:1, created:Date.now() }));
     dbSet('initialized', true);
   });
