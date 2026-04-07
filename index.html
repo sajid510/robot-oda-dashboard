@@ -854,6 +854,8 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div class="modal-title">&#128221; My Notes</div>
   <div style="display:flex;gap:10px;margin-bottom:12px">
     <button class="btn-primary" onclick="addNote()">&#43; New Note</button>
+    <button class="btn-secondary" onclick="triggerMyFileUpload()">&#128228; Upload File</button>
+    <input type="file" id="myNotesFileInput" style="display:none" onchange="uploadMyNoteFile(this.files[0]); this.value='';">
   </div>
   <div id="notesList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-height:420px;overflow-y:auto"></div>
 </div>
@@ -1801,6 +1803,24 @@ function renderNotes(notes) {
 
 function addNote() {
   dbPush(`notes/${currentUser}`, { title: 'New Note', text: '', created: Date.now() });
+}
+  function triggerMyFileUpload() {
+  const input = document.getElementById('myNotesFileInput');
+  if (input) input.click();
+}
+function uploadMyNoteFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    dbPush('noteFiles/my', {
+      name: file.name,
+      type: file.type || 'application/octet-stream',
+      size: file.size || 0,
+      data: reader.result,
+      created: Date.now()
+    });
+  };
+  reader.readAsDataURL(file);
 }
 function saveNote(key, div) {
   const ta = div.querySelector('textarea');
