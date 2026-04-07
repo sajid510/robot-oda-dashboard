@@ -1736,11 +1736,7 @@ function rewriteUpcomingTask(key) {
     setTimeout(() => checkSessionCompletion(val.sessionIndex), 0);
   });
 }
-dbOn(`tasks/${currentUser}/doneSessions`, doneSessions => {
-    strip.innerHTML = '';
-    sessions.forEach((sess, idx) => {
-  });
-}
+
 function toggleTask(type, key, checked) {
   if (type === 'doneSession' && !checked) {
     dbOnce(`tasks/${currentUser}/doneSession/${key}`, val => {
@@ -2780,6 +2776,10 @@ function seedInitialData(force = false) {
   { sessionIndex:4, order:4,  weight:1, bibleRef:"P3·S11",
     text:"Final Git commit for Track C handoff to Sadnan: push all firmware files on branch track-c-firmware-safety. Tag the commit 'firmware-compile-clean'. Post compile screenshot in team dashboard Notes. Notify Sadnan via Discord that handoff is ready." },
 ];
+  const USER_TASK_SEEDS = {
+    sadnan: SADNAN_TASKS,
+    tazin: TAZIN_TASKS,
+    akib: AKIB_TASKS
   };
 
   const TEAM_TASKS = [
@@ -2846,8 +2846,7 @@ function seedInitialData(force = false) {
   { text:"[SEND TO SADNAN] serial_node.py", type:"Files", to:"sadnan" },
   { text:"[SEND TO SADNAN] Arduino compile screenshot — zero errors proof", type:"Test", to:"sadnan" },
 ];
-  };
-    dbOnce('initialized', val => {
+  dbOnce('initialized', val => {
     if (val && !force) return; // Already seeded
 
     Object.entries(USER_TASK_SEEDS).forEach(([member, tasks]) => {
