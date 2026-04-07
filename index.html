@@ -1663,7 +1663,7 @@ function renderTaskList(elId, entries, type, checkable, uncheckable) {
       ? `<button class="task-edit-btn" title="Rewrite task" onclick="event.stopPropagation(); rewriteUpcomingTask('${key}')">✎</button>`
       : '';
     const checkboxHandler = type === 'upcoming'
-      ? `checkUpcomingTask('${key}', this.checked)`
+      ? `checkUpcomingTask('${key}')`
       : `toggleTask('${type}','${key}', this.checked)`;
     li.innerHTML = `
       <input type="checkbox" ${task.done?'checked':''} onchange="${checkboxHandler}">
@@ -1726,20 +1726,13 @@ function rewriteUpcomingTask(key) {
     dbUpdate(`tasks/${currentUser}/upcoming/${key}`, { text: clean, updatedAt: Date.now() });
   });
 }
-  function checkUpcomingTask(key, checked) {
-  if (!checked) {
-    checkSessionCompletion();
-    return;
-  }
-  dbOnce(`tasks/${currentUser}/upcoming/${key}`, task => {
-    if (!task) return;
-    dbPush(`tasks/${currentUser}/doneSession`, {
-      ...task,
-      done: true,
-      completedAt: Date.now()
-    });
+  function checkUpcomingTask(key) {
+  dbOnce(`tasks/${currentUser}/upcoming/${key}`, val => {
+    if (!val) return;
+    const done = { ...val, done: true, completedAt: Date.now() };
+    dbSet(`tasks/${currentUser}/doneTasks/${key}`, done);
     dbRemove(`tasks/${currentUser}/upcoming/${key}`);
-    checkSessionCompletion();
+    setTimeout(() => checkSessionCompletion(val.sessionIndex), 0);
   });
 }
 function checkSessionCompletion() {
