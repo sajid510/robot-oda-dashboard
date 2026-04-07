@@ -337,6 +337,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div class="topbar-nav" id="topNav"></div>
   <div class="topbar-right">
     <span id="topUserTag" style="font-size:11px;color:var(--text3)"></span>
+    <button class="logout-btn" onclick="openModal('modalMyPin')">Change My PIN</button>
     <button class="logout-btn" onclick="logout()">Logout</button>
   </div>
 </div>
@@ -474,7 +475,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
         </div>
         <div class="card-body compact">
           <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Set your own 4-digit login PIN.</div>
-          <button class="btn-sm" style="width:100%" onclick="openModal('modalMyPin')">Change My PIN</button>
+          <div style="font-size:10px;color:var(--text3)">Use the top bar button to change your PIN quickly.</div>
         </div>
       </div>
     </div>
