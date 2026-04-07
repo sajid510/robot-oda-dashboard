@@ -202,7 +202,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .session-strip{display:flex;flex-wrap:wrap;gap:7px;padding:8px 0 4px}
 .session-pill{font-size:11px;background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.3);border-radius:20px;padding:4px 14px;color:var(--purple2);cursor:pointer;transition:all .2s;letter-spacing:.3px}
 .session-pill:hover{background:rgba(124,106,247,.22);border-color:var(--purple)}
-  .session-pill.done{background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.45);color:var(--green2)}
 .session-pill.done{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--green2)}
 .session-meta{display:grid;gap:8px}
 .session-meta .line{font-size:12px;color:var(--text2)}
@@ -1182,7 +1181,13 @@ function dbOnce(path, cb) {
   if (fbReady) {
     db.ref(path).once('value', snap => cb(snap.val()));
   } else {
-    cb(dbGetLocal(path));
+    const raw = localStorage.getItem('oda_' + path.replace(/\//g,'_'));
+    if (raw == null) {
+      cb(null);
+      return;
+    }
+    try { cb(JSON.parse(raw)); }
+    catch(e) { cb(null); }
   }
 }
 
@@ -1659,7 +1664,6 @@ function renderTaskList(elId, entries, type, checkable, uncheckable) {
         document.querySelectorAll('.task-item.drop-target').forEach(node => node.classList.remove('drop-target'));
       });
     }
-    const w = task.weight || 1;
     const editBtn = type === 'upcoming'
       ? `<button class="task-edit-btn" title="Rewrite task" onclick="event.stopPropagation(); rewriteUpcomingTask('${key}')">✎</button>`
       : '';
@@ -1668,7 +1672,6 @@ function renderTaskList(elId, entries, type, checkable, uncheckable) {
       : `toggleTask('${type}','${key}', this.checked)`;
     li.innerHTML = `
       <input type="checkbox" ${task.done?'checked':''} onchange="${checkboxHandler}">
-      <span>${task.text || task}</span>
       ${editBtn}
       <span>${type==='handoff' ? `<strong>[${task.kind||'General'}]</strong> ` : ''}${task.text || task}</span>
     `;
@@ -2846,8 +2849,14 @@ function seedInitialData(force = false) {
   { text:"[SEND TO SADNAN] serial_node.py", type:"Files", to:"sadnan" },
   { text:"[SEND TO SADNAN] Arduino compile screenshot — zero errors proof", type:"Test", to:"sadnan" },
 ];
+  const HANDOFF_SEEDS = {
+    sadnan: SADNAN_HANDOFFS,
+    tazin: TAZIN_HANDOFFS,
+    akib: AKIB_HANDOFFS
+  };
   dbOnce('initialized', val => {
-    if (val && !force) return; // Already seeded
+    const alreadyInitialized = val === true;
+    if (alreadyInitialized && !force) return; // Already seeded
 
     Object.entries(USER_TASK_SEEDS).forEach(([member, tasks]) => {
       tasks.forEach((task, idx) => {
@@ -2864,11 +2873,8 @@ function seedInitialData(force = false) {
     TEAM_TASKS.forEach((task, order) => {
       dbPush('teamTasks/upcoming', { ...task, done:false, created:Date.now(), order });
     });
-      // Seed handoff checklists per member
-    SADNAN_HANDOFFS.forEach(h => dbPush(`handoffs/sadnan`, { ...h, done: false, created: Date.now() }));
-    TAZIN_HANDOFFS.forEach(h => dbPush(`handoffs/tazin`, { ...h, done: false, created: Date.now() }));
-    AKIB_HANDOFFS.forEach(h => dbPush(`handoffs/akib`, { ...h, done: false, created: Date.now() }));
-      
+    
+       // Seed handoff checklists per member
     Object.entries(HANDOFF_SEEDS).forEach(([member, items]) => {
       items.forEach((item, order) => {
         dbPush(`handoff/${member}`, { ...item, done:false, created:Date.now(), order });
