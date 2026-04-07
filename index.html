@@ -2850,12 +2850,13 @@ function seedInitialData(force = false) {
     if (val && !force) return; // Already seeded
 
     Object.entries(USER_TASK_SEEDS).forEach(([member, tasks]) => {
-      tasks.forEach((task, order) => {
+      tasks.forEach((task, idx) => {
         dbPush(`tasks/${member}/upcoming`, {
           ...task,
+          member,
           done: false,
           created: Date.now(),
-          order
+          order: Number.isInteger(task.order) ? task.order : idx
         });
       });
     });
