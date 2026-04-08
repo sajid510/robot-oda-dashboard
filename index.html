@@ -1605,15 +1605,17 @@ function sortUpcomingEntries(tasks) {
     });
 }
   function renderUpcoming(tasks) {
-  latestDoneSession = tasks || {};
-  renderDoneTasks();
+  const open = sortUpcomingEntries(tasks || {});
+  latestUpcomingEntries = open;
+  document.getElementById('upcomingCount').textContent = open.length;
+  renderTaskList('upcomingList', open.slice(0,4), 'upcoming', true, false);
+  renderTaskList('upcomingListFull', open, 'upcoming', true, false);
 }
 
 function renderDoneTasks() {
   const source = Object.keys(latestDoneTasks || {}).length ? latestDoneTasks : (latestDoneSession || {});
   const entries = Object.entries(source);
-  latestUpcomingEntries = open;
-  document.getElementById('upcomingCount').textContent = open.length;
+  document.getElementById('doneSessionCount').textContent = entries.length;
   renderTaskList('doneSessionList', entries.slice(0,4), 'doneTasks', false, true);
   renderTaskList('doneSessionListFull', entries, 'doneTasks', false, true);
 }
@@ -1758,7 +1760,7 @@ function toggleTask(type, key, checked) {
   if ((type === 'doneTasks' || type === 'doneSession') && !checked) {
     const donePath = type === 'doneTasks' ? 'doneTasks' : 'doneSession';
     dbOnce(`tasks/${currentUser}/${donePath}/${key}`, val => {
-      const entry = val || (donePath === 'doneTasks' ? latestDoneSession[key] : latestDoneTasks[key]);
+      const entry = val || (donePath === 'doneTasks' ? latestDoneTasks[key] : latestDoneSession[key]);
       if (!entry) return;
       if (entry?.isSessionCompletion) {
         dbRemove(`tasks/${currentUser}/${donePath}/${key}`);
