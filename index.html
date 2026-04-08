@@ -1514,7 +1514,13 @@ function initDashboard() {
     renderUpcoming(tasks || {});
   });
 
-  // Done session
+  // Done tasks (primary path)
+  dbOn(`tasks/${u}/doneTasks`, tasks => {
+    latestDoneTasks = tasks || {};
+    renderDoneTasks();
+  });
+
+  // Done session (legacy fallback path)
   dbOn(`tasks/${u}/doneSession`, tasks => {
     renderDoneSession(tasks || {});
   });
@@ -1583,7 +1589,9 @@ function updateStatus() {
 // ═══════════════════════════════════════════════════════════════════
 let latestUpcomingEntries = [];
 let dragUpcomingKey = null;
-
+let latestDoneTasks = {};
+let latestDoneSession = {};
+  
 function sortUpcomingEntries(tasks) {
   return Object.entries(tasks)
     .filter(([,v]) => !v.done)
@@ -1597,11 +1605,17 @@ function sortUpcomingEntries(tasks) {
     });
 }
   function renderUpcoming(tasks) {
-  const open = sortUpcomingEntries(tasks || {});
+  latestDoneSession = tasks || {};
+  renderDoneTasks();
+}
+
+function renderDoneTasks() {
+  const source = Object.keys(latestDoneTasks || {}).length ? latestDoneTasks : (latestDoneSession || {});
+  const entries = Object.entries(source);
   latestUpcomingEntries = open;
   document.getElementById('upcomingCount').textContent = open.length;
-  renderTaskList('upcomingList', open.slice(0,5), 'upcoming', true);
-  renderTaskList('upcomingListFull', open, 'upcoming', true);
+  renderTaskList('doneSessionList', entries.slice(0,4), 'doneTasks', false, true);
+  renderTaskList('doneSessionListFull', entries, 'doneTasks', false, true);
 }
 
 function renderDoneSession(tasks) {
@@ -1741,16 +1755,19 @@ function rewriteUpcomingTask(key) {
 }
 
 function toggleTask(type, key, checked) {
-  if (type === 'doneSession' && !checked) {
-    dbOnce(`tasks/${currentUser}/doneSession/${key}`, val => {
-      if (val?.isSessionCompletion) {
-        dbRemove(`tasks/${currentUser}/doneSession/${key}`);
-        checkSessionCompletion(val.sessionIndex);
+  if ((type === 'doneTasks' || type === 'doneSession') && !checked) {
+    const donePath = type === 'doneTasks' ? 'doneTasks' : 'doneSession';
+    dbOnce(`tasks/${currentUser}/${donePath}/${key}`, val => {
+      const entry = val || (donePath === 'doneTasks' ? latestDoneSession[key] : latestDoneTasks[key]);
+      if (!entry) return;
+      if (entry?.isSessionCompletion) {
+        dbRemove(`tasks/${currentUser}/${donePath}/${key}`);
+        checkSessionCompletion(entry.sessionIndex);
         return;
       }
-      dbPush(`tasks/${currentUser}/upcoming`, { ...val, done: false });
-      dbRemove(`tasks/${currentUser}/doneSession/${key}`);
-      checkSessionCompletion(val.sessionIndex);
+      dbPush(`tasks/${currentUser}/upcoming`, { ...entry, done: false });
+      dbRemove(`tasks/${currentUser}/${donePath}/${key}`);
+      checkSessionCompletion(entry.sessionIndex);
     });
   } else if (type === 'doneSub' && !checked) {
     dbRemove(`tasks/${currentUser}/doneSub/${key}`);
