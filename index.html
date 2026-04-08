@@ -1608,7 +1608,7 @@ function sortUpcomingEntries(tasks) {
   const open = sortUpcomingEntries(tasks || {});
   latestUpcomingEntries = open;
   document.getElementById('upcomingCount').textContent = open.length;
-  renderTaskList('upcomingList', open.slice(0,4), 'upcoming', true, false);
+  renderTaskList('upcomingList', open.slice(0, 5), 'upcoming', true, false);
   renderTaskList('upcomingListFull', open, 'upcoming', true, false);
 }
 
@@ -1618,6 +1618,7 @@ function renderDoneTasks() {
   document.getElementById('doneSessionCount').textContent = entries.length;
   renderTaskList('doneSessionList', entries.slice(0,4), 'doneTasks', false, true);
   renderTaskList('doneSessionListFull', entries, 'doneTasks', false, true);
+  document.getElementById('doneSessionCount').textContent = entries.length;
 }
 
 function renderDoneSession(tasks) {
